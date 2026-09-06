@@ -101,6 +101,10 @@ module.exports = class WireGuard {
           if (typeof config.server.s2 === 'number' && config.server.s2 < 12) config.server.s2 = 15;
           if (typeof config.server.s3 === 'number' && config.server.s3 < 12) config.server.s3 = 16;
           if (typeof config.server.s4 === 'number' && config.server.s4 < 12) config.server.s4 = 18;
+
+          // Clear legacy I1/I2 test patterns that block AWG3 mobile clients
+          if (config.server.i1 && config.server.i1.includes('<b 0x')) config.server.i1 = '';
+          if (config.server.i2 && config.server.i2.includes('<b 0x')) config.server.i2 = '';
         }
 
         debug('Configuration loaded.');

@@ -80,9 +80,9 @@ module.exports.H2 = process.env.H2 || defaultHeaderRanges[1];
 module.exports.H3 = process.env.H3 || defaultHeaderRanges[2];
 module.exports.H4 = process.env.H4 || defaultHeaderRanges[3];
 
-// Special junk packets (optional)
-module.exports.I1 = process.env.I1 || '<b 0xc700000001><rc 8><t><r 100>';
-module.exports.I2 = process.env.I2 || '<b 0xf6ab3267fa><t><rc 20><r 80>';
+// Special junk packets (optional, empty by default to prevent client handshake failure)
+module.exports.I1 = process.env.I1 || '';
+module.exports.I2 = process.env.I2 || '';
 module.exports.I3 = process.env.I3 || '';
 module.exports.I4 = process.env.I4 || '';
 module.exports.I5 = process.env.I5 || '';
