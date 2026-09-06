@@ -128,6 +128,16 @@ if [ ! -f "$ENV_FILE" ]; then
     echo ""
     PASSWORD="${INPUT_PASSWORD:-admin123}"
     
+    # Check if Docker image is built; if not, build it automatically
+    if ! sudo docker image inspect amnezia-wg-easy:3.1 >/dev/null 2>&1; then
+        echo "AmneziaWG 3.1 Docker image not found. Building image now (this may take 2-3 minutes)..."
+        sudo docker build --network host -t amnezia-wg-easy:3.1 .
+        if [ $? -ne 0 ]; then
+            echo "ERROR: Docker build failed. Please check build logs."
+            exit 1
+        fi
+    fi
+
     echo "Generating Password Hash..."
     HASH=$(sudo docker run -i --entrypoint="" amnezia-wg-easy:3.1 node /app/wgpw.mjs "$PASSWORD" 2>/dev/null | grep '^PASSWORD_HASH=' | cut -d"'" -f2)
     if [ -z "$HASH" ]; then
@@ -135,8 +145,7 @@ if [ ! -f "$ENV_FILE" ]; then
     fi
     
     if [ -z "$HASH" ]; then
-        echo "ERROR: Failed to generate password hash. Make sure amnezia-wg-easy:3.1 image is built."
-        echo "Run: sudo docker build --network host -t amnezia-wg-easy:3.1 ."
+        echo "ERROR: Failed to generate password hash."
         exit 1
     fi
     
