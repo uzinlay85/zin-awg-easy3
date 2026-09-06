@@ -75,6 +75,7 @@ if [ ! -f "$ENV_FILE" ]; then
     cat << EOF > "$ENV_FILE"
 WG_HOST=${DOMAIN}
 PASSWORD_HASH=${HASH}
+ADMIN_PASSWORD=${PASSWORD}
 PORT=${PORT}
 WG_PORT=${WG_PORT}
 WG_DEFAULT_ADDRESS=10.8.1.x
@@ -199,9 +200,15 @@ sudo docker run -d \
 
 echo ""
 echo "=================================================="
-echo "🎉 AmneziaWG 3.1 (AWG3) is now running!"
+echo "🎉 AmneziaWG 3.1 (AWG3) is now running successfully!"
+echo "=================================================="
 echo "🌐 Web UI Panel : http://${DOMAIN}:${PORT}"
-echo "🔑 VPN Endpoint : ${DOMAIN}:${WG_PORT}"
+if [ -n "$ADMIN_PASSWORD" ]; then
+    echo "🔑 Admin Pass   : ${ADMIN_PASSWORD}"
+else
+    echo "🔑 Admin Pass   : (Configured in PASSWORD_HASH)"
+fi
+echo "🛡️  VPN Endpoint : ${DOMAIN}:${WG_PORT} (UDP)"
 echo "📁 Volume Path  : ${VOL_DIR}"
 echo "=================================================="
 sudo docker ps | grep "$CONTAINER_NAME"
