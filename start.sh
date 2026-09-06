@@ -15,7 +15,13 @@ echo "Detecting server public IP..."
 SERVER_IP=$(curl -s4 --max-time 3 ifconfig.me 2>/dev/null || curl -s4 --max-time 3 icanhazip.com 2>/dev/null || curl -s4 --max-time 3 api.ipify.org 2>/dev/null || echo "127.0.0.1")
 echo "Detected Public IP: ${SERVER_IP}"
 
-# Step 1: Check if config.env exists. If not, try to extract from running amnezia-wg-easy3 container
+# Step 1: Check for command line arguments (e.g. ./start.sh passwd / ./start.sh password)
+CHANGE_PASSWORD=false
+if [ "$1" == "passwd" ] || [ "$1" == "password" ] || [ "$1" == "--password" ] || [ "$1" == "-p" ]; then
+    CHANGE_PASSWORD=true
+fi
+
+# Step 2: Check if config.env exists. If not, try to extract from running amnezia-wg-easy3 container
 if [ ! -f "$ENV_FILE" ]; then
     echo "No $ENV_FILE found. Checking if there is an active $CONTAINER_NAME container to restore config..."
     if sudo docker ps --format '{{.Names}}' | grep -q "^${CONTAINER_NAME}$"; then
@@ -41,9 +47,56 @@ EOF
             echo "Successfully restored settings and created $ENV_FILE."
         fi
     fi
+elif [ "$CHANGE_PASSWORD" = false ]; then
+    echo ""
+    echo "Current setup detected with existing $ENV_FILE."
+    echo "1) Keep current settings and start"
+    echo "2) Change Web UI Admin Password"
+    echo "3) Reconfigure everything (Domain, Ports, Password)"
+    read -p "Select option [Default: 1]: " MENU_CHOICE
+    if [ "$MENU_CHOICE" == "2" ]; then
+        CHANGE_PASSWORD=true
+    elif [ "$MENU_CHOICE" == "3" ]; then
+        rm -f "$ENV_FILE"
+    fi
 fi
 
-# Step 2: If config.env still doesn't exist, ask the user with smart defaults
+# Step 3: Handle Password Change if requested
+if [ "$CHANGE_PASSWORD" = true ] && [ -f "$ENV_FILE" ]; then
+    echo ""
+    echo "=== Change Web UI Admin Password ==="
+    read -s -p "Enter NEW Admin Password: " NEW_PASSWORD
+    echo ""
+    if [ -n "$NEW_PASSWORD" ]; then
+        echo "Generating new password hash..."
+        NEW_HASH=$(sudo docker run -i --entrypoint="" amnezia-wg-easy:3.1 node /app/wgpw.mjs "$NEW_PASSWORD" 2>/dev/null | grep '^PASSWORD_HASH=' | cut -d"'" -f2)
+        if [ -z "$NEW_HASH" ]; then
+            NEW_HASH=$(sudo docker run -i amnezia-wg-easy:3.1 wgpw "$NEW_PASSWORD" 2>/dev/null | grep '^PASSWORD_HASH=' | cut -d"'" -f2)
+        fi
+        
+        if [ -n "$NEW_HASH" ]; then
+            # Update PASSWORD_HASH and ADMIN_PASSWORD in config.env
+            if grep -q '^PASSWORD_HASH=' "$ENV_FILE"; then
+                sed -i "s|^PASSWORD_HASH=.*|PASSWORD_HASH=${NEW_HASH}|" "$ENV_FILE"
+            else
+                echo "PASSWORD_HASH=${NEW_HASH}" >> "$ENV_FILE"
+            fi
+            
+            if grep -q '^ADMIN_PASSWORD=' "$ENV_FILE"; then
+                sed -i "s|^ADMIN_PASSWORD=.*|ADMIN_PASSWORD=${NEW_PASSWORD}|" "$ENV_FILE"
+            else
+                echo "ADMIN_PASSWORD=${NEW_PASSWORD}" >> "$ENV_FILE"
+            fi
+            echo "✅ Password successfully updated in $ENV_FILE."
+        else
+            echo "❌ Failed to generate password hash. Keeping old password."
+        fi
+    else
+        echo "No password entered. Keeping current password."
+    fi
+fi
+
+# Step 4: If config.env still doesn't exist, ask the user with smart defaults
 if [ ! -f "$ENV_FILE" ]; then
     echo ""
     echo "=== Configure Settings (Press Enter to use Default) ==="
