@@ -156,6 +156,15 @@ echo "Stopping old $CONTAINER_NAME container if running..."
 sudo docker stop "$CONTAINER_NAME" 2>/dev/null || true
 sudo docker rm "$CONTAINER_NAME" 2>/dev/null || true
 
+# Enable Host IP Forwarding and NAT Masquerading for VPN Subnet
+sudo sysctl -w net.ipv4.ip_forward=1 >/dev/null 2>&1
+sudo iptables -P FORWARD ACCEPT >/dev/null 2>&1
+DEFAULT_SUBNET="${WG_DEFAULT_ADDRESS:-10.8.1.x}"
+SUBNET_CIDR="${DEFAULT_SUBNET/x/0}/24"
+if ! sudo iptables -t nat -C POSTROUTING -s "$SUBNET_CIDR" -j MASQUERADE 2>/dev/null; then
+    sudo iptables -t nat -A POSTROUTING -s "$SUBNET_CIDR" -j MASQUERADE 2>/dev/null || true
+fi
+
 # Configure UFW Firewall if installed
 if command -v ufw >/dev/null 2>&1; then
     echo "Configuring Firewall (UFW)..."
