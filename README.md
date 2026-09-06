@@ -1,432 +1,185 @@
-# AmneziaWG 3.1 Web UI (zin-awg-easy_AWG3)
+# AmneziaWG 3.1 Web UI (zin-awg-easy3)
 
-ဒီပရောဂျက်ဟာ လူကြိုက်များတဲ့ `wg-easy` ကို အခြေခံပြီး **AmneziaWG 3.1 (AWG3)** protocol ကို အပြည့်အဝ support ပေးနိုင်အောင် ပြုလုပ်ထားတဲ့ Web-based management interface ဖြစ်ပါတယ်။ 
+ဒီ repository သည် လူကြိုက်များသော `wg-easy` ကို အခြေခံပြီး **AmneziaWG 3.1 (AWG3)** protocol အသစ်ကို အပြည့်အဝ ထောက်ပံ့ပေးနိုင်ရန် ပြုပြင်ဖန်တီးထားသော Web-based Management Panel ဖြစ်ပါသည်။
 
-မူလဗားရှင်းထက် ပိုမိုကောင်းမွန်ပြီး လုံခြုံတဲ့ traffic obfuscation parameters များဖြစ်တဲ့ **HeaderProtectionKey** (ChaCha20 header encryption), **ContentPaddingAddition**, **Randomized Timings (Rekey/Reject/Keepalive)**, **RandomTrailers**, **DisableCookies** များနှင့် **CPS (Custom Protocol Signature)** parameters (`I1`, `I2`) များကိုပါ Web Panel ကနေ client configurations တွေဆီ အလိုအလျောက် ထည့်သွင်းထုတ်ပေးနိုင်အောင် မွမ်းမံပြင်ဆင်ထားပါတယ်။
-
-ဆာဗာပေါ်တွင် AmneziaWG 3.1 engine များကို source code မှတစ်ဆင့် compile လုပ်၍ run စေရန်နှင့် အခြား vpn (ဥပမာ- Outline) များနှင့် port တိုက်ဆိုင်မှုမရှိစေရန် **Port 8443** ကို အသုံးပြု၍ configure လုပ်နည်းကို အောက်ပါအတိုင်း ညွှန်ကြားထားပါသည်။
-
----
-
-## 📌 Features (ထူးခြားချက်များ)
-- **AmneziaWG 3.1 (AWG3) Full Support:** DPI bypass အတွက် Header Protection (`HeaderProtectionKey`), Traffic Padding (`ContentPaddingAddition`), Timing Randomization (`RekeyAfterTime`, `RekeyTimeout`, `RejectAfterTime`, `KeepaliveTimeout`), `RandomTrailers = on`, `DisableCookies = on` များကို အလိုအလျောက် ထုတ်လုပ်ပေးခြင်း။
-- **Universal Kernel/Userspace Compatibility:** Host VPS ပေါ်ရှိ kernel module အဟောင်းများတွင် `Invalid argument` မဖြစ်စေရန် userspace fallback (`amneziawg-go`) auto-guard စနစ် ပါဝင်ခြင်း။
-- **Docker Source Compilation:** `amneziawg-go` နှင့် `amneziawg-tools` နောက်ဆုံးဗားရှင်းများကို Container အတွင်း source code မှ တိုက်ရိုက် compile လုပ်ထားခြင်း။
-- **Web UI Management:** VPN clients များကို Port 8443 (HTTPS) ဖြင့် လုံခြုံစွာ ဖန်တီးခြင်း၊ ဖျက်ခြင်း၊ ပိတ်ခြင်း/ဖွင့်ခြင်း ပြုလုပ်နိုင်ခြင်း။
-- **QR Code & Config Download:** Client များအတွက် AmneziaWG 3.1 configuration ဖိုင်နှင့် QR ကုဒ်များ တိုက်ရိုက်ထုတ်ပေးခြင်း။
-- **Traffic Stats:** One-time links, traffic usage charts နှင့် device list များ စောင့်ကြည့်နိုင်ခြင်း။
-- **3X-UI Coexistence Support:** ဆာဗာတစ်ခုတည်းပေါ်တွင် VLESS-Reality နှင့် Hysteria 2 များကိုပါ Port မငြိစွန်းဘဲ အတူတွဲဖက်လည်ပတ်နိုင်ခြင်း ([3X-UI Setup Guide](3XUI_COEXIST_GUIDE.md) တွင် ကြည့်ရှုနိုင်ပါသည်)။
-- **Outline VPN Coexistence Support:** Port 443 ကို မထိခိုက်စေဘဲ Outline (Shadowbox) ကိုပါ Port 10443/18443 ဖြင့် တွဲဖက်တပ်ဆင်ခြင်းနှင့် Docker MTU ပြဿနာများ ဖြေရှင်းခြင်း ([Outline Setup Guide](OUTLINE_COEXIST_GUIDE.md) တွင် ကြည့်ရှုနိုင်ပါသည်)။
+မူလ AWG-2 ထက် ပိုမိုခေတ်မီပြီး DPI ပိတ်ဆို့မှုများကို အကောင်းဆုံး ကျော်ဖြတ်နိုင်သော AmneziaWG 3.1 features များ ပါဝင်ပါသည်:
+- **HeaderProtectionKey** (ChaCha20-Poly1305 header encryption)
+- **ContentPaddingAddition** (ကျပန်း packet padding အတိုင်းအတာ `10-54`)
+- **Randomized Timings** (`RekeyAfterTime = 103-136`, `RekeyTimeout = 4-6`, `RejectAfterTime = 170-200`, `KeepaliveTimeout = 9-13`, `MaxHandshakeAttempts = 17-20`)
+- **RandomTrailers** (`on`)
+- **DisableCookies** (`on`)
+- **Custom Protocol Signature (CPS) & HTTP/QUIC Header Ranges** (`H1..H4`, `I1..I2`)
 
 ---
 
-## 🚀 VPS ပေါ်တွင် အစအဆုံး တပ်ဆင်နည်း လမ်းညွှန် (Full Setup Guide)
+## ✨ ထူးခြားချက်များနှင့် စွမ်းဆောင်ရည်များ (Features)
 
-သင့်ပိုင် Domain Name (ဥပမာ- `vpn.yourdomain.com`) ကို အသုံးပြုပြီး Ubuntu/Debian server ပေါ်တွင် Error ကင်းကင်းဖြင့် အစအဆုံး တပ်ဆင်နည်း ဖြစ်သည်။
+1. **AWG2 နှင့် တစ်ဆာဗာတည်းတွင် အတူတွဲဖက် Run နိုင်ခြင်း (Coexistence):**
+   - ယခင် Server ပေါ်တွင် AWG-2 (`amnezia-wg-easy`) သို့မဟုတ် Outline VPN ရှိနေစေကာမူ port နှင့် volume မငြိဘဲ AWG-3 (`amnezia-wg-easy3`) ကို ဘေးချင်းယှဉ်၍ လွတ်လပ်စွာ install ပြုလုပ်နိုင်ပါသည်။
+2. **Auto Public IP & Independent Port Detection:**
+   - Domain မရှိပါက ဆာဗာ၏ Public IP ကို အလိုအလျောက် ရှာဖွေပေးပါသည်။
+   - Default Web UI Port: **`51833`** (TCP)
+   - Default VPN Port: **`51820`** (UDP)
+   - Default VPN Subnet: **`10.8.1.x`**
+3. **Auto UFW Firewall Configuration:**
+   - Script run လိုက်သည်နှင့် ရွေးချယ်ထားသော VPN UDP Port နှင့် Web UI TCP Port တို့ကို UFW Firewall တွင် အလိုအလျောက် `ufw allow` ပြုလုပ်ပေးပြီး `reload` လုပ်ပေးပါသည်။
+4. **Interactive Admin Password Management:**
+   - Setup စတင်ချိန်တွင် Password သတ်မှတ်နိုင်သည့်အပြင်၊ နောက်ပိုင်းတွင် Password အသစ်ပြောင်းလိုပါက `./start.sh password` ဖြင့် အချိန်မရွေး လွယ်ကူစွာ ပြောင်းလဲနိုင်ပါသည်။
+5. **Universal Kernel / Userspace Compatibility:**
+   - VPS Linux kernel ပေါ်တွင် AmneziaWG module မရှိသေးပါက userspace fallback (`amneziawg-go`) ဖြင့် error ကင်းစွာ auto-fallback အလုပ်လုပ်ပါသည်။
 
-> [!IMPORTANT]
-> **မစတင်မီ:** Cloudflare သို့မဟုတ် သင့် Domain provider panel တွင် Domain ကို သင့် VPS IP သို့ ညွှန်ပြထားပြီး **Proxy Status ကို DNS Only (မီးခိုးရောင် တိမ်တိုက်)** အဖြစ် ပြောင်းထားပါ။
+---
 
-> [!NOTE]
-> **Port တိုက်ဆိုင်မှု ကြိုတင်စစ်ဆေးရန် (Pre-check Ports):**
-> မတပ်ဆင်မီ ကျွန်ုပ်တို့အသုံးပြုမည့် ports များအား အခြား service များက ယူသုံးထားခြင်း ရှိ/မရှိ အောက်ပါအတိုင်း ကြိုတင်စစ်ဆေးနိုင်ပါသည် -
-> ```bash
-> # VPN Port (58210/UDP) သုံးထားသလား စစ်ရန်
-> sudo ss -ulpn | grep :58210
-> 
-> # Web UI Proxy Port (8443/TCP) သုံးထားသလား စစ်ရန် (အကယ်၍ သုံးထားပါက အဆင့် ၆ ရှိ TIP အတိုင်း port ပြောင်းသုံးပါ)
-> sudo ss -tlpn | grep :8443
-> ```
+## 🚀 VPS ပေါ်တွင် အစအဆုံး အလွယ်တကူ တပ်ဆင်နည်း (Quick Setup)
 
-### အဆင့် (၁) - NAT Module ဖွင့်ခြင်း နှင့် Docker သွင်းခြင်း
-Docker ၏ legacy iptables စနစ် အလုပ်လုပ်နိုင်ရန် NAT Module ကို ကြိုတင်ဖွင့်ပြီး Docker သွင်းပါ -
+Ubuntu / Debian VPS ပေါ်တွင် Terminal ဖွင့်ပြီး အောက်ပါ command များကို အစဉ်လိုက် run ပေးရုံသာ ဖြစ်ပါသည်:
+
+### အဆင့် (၁) - Repository ကို Clone ခေါ်ပါ
+
 ```bash
-# ၁။ NAT module ဖွင့်ရန်
-sudo modprobe iptable_nat
-
-# ၂။ Reboot တက်တိုင်း အလိုအလျောက် ပွင့်နေစေရန် save လုပ်ရန်
-echo "iptable_nat" | sudo tee /etc/modules-load.d/iptable_nat.conf
-
-# ၃။ Docker နှင့် Git သွင်းရန် (curl error သို့မဟုတ် connection timeout ဖြစ်ပါက Troubleshooting အပိုင်း ၃ ကို ကြည့်ပါ)
-curl -fsSL https://get.docker.com | sudo bash || (sudo apt update && sudo apt install -y docker.io git)
-
-# ၄။ Docker Service ကို အမြဲတမ်း run ထားရန် ဖွင့်ခြင်း
-sudo systemctl enable --now docker
-```
-
-### အဆင့် (၂) - Firewall (UFW) ပေါက်များ ဖွင့်ခြင်း
-VPN နှင့် Web UI proxy အတွက် လိုအပ်သော ports များကို firewall တွင် ဖွင့်ပါ -
-```bash
-sudo ufw allow <YOUR_SSH_PORT>/tcp   # မိမိအသုံးပြုနေသော SSH Port ကို ဖွင့်ပေးရန် (ပုံမှန် ၂၂ သို့မဟုတ် သီးသန့် port)
-sudo ufw allow 80/tcp
-sudo ufw allow 8443/tcp
-sudo ufw allow 58210/udp
-sudo ufw reload
-```
-
-### အဆင့် (၃) - Source Code မှ Docker Image ကို Build ပြုလုပ်ခြင်း
-VPS ပေါ်တွင် AmneziaWG 3.1 core binaries များကို compile လုပ်ရန် code ကို clone ဖတ်ပြီး build ဆွဲပါ -
-```bash
+cd /home/zinko   # သို့မဟုတ် မိမိအသုံးပြုလိုသော directory (ဥပမာ cd ~)
 git clone https://github.com/uzinlay85/zin-awg-easy3.git
 cd zin-awg-easy3
-
-# Image build ဆွဲခြင်း (၃ မိနစ်ခန့် ကြာနိုင်ပါသည်)
-sudo docker build --network=host -t amnezia-wg-easy:3.1 .
 ```
 
-### အဆင့် (၄) - Variables သတ်မှတ်ခြင်း နှင့် Password Hash Code ထုတ်ခြင်း
-တပ်ဆင်မှုကို ပိုမိုမြန်ဆန်လွယ်ကူစေရန်နှင့် domain/password ပြင်ရသည့် နေရာများကို လျှော့ချရန်အတွက် သင့် Domain နှင့် Password ကို Variable အဖြစ် သတ်မှတ်ပါ -
-```bash
-# ၁။ မိမိ၏ Domain နှင့် အသုံးပြုလိုသော Password ကို သတ်မှတ်ပါ
-export DOMAIN="vpn.yourdomain.com"
-export PASSWORD="YOUR_PASSWORD"
+### အဆင့် (၂) - Docker Image ကို Build ပြုလုပ်ပါ
 
-# ၂။ Password ကို Hash Code အဖြစ် အလိုအလျောက် ပြောင်းလဲသတ်မှတ်ခြင်း
-export HASH=$(sudo docker run -i amnezia-wg-easy:3.1 wgpw "$PASSWORD" | cut -d"'" -f2)
+```bash
+sudo docker build --no-cache --network host -t amnezia-wg-easy:3.1 .
 ```
+*(ပထမဆုံးအကြိမ် compile လုပ်ချိန် ၃ မိနစ်ခန့် ကြာနိုင်ပါသည်)*
 
-### အဆင့် (၅) - Container ကို စတင် Run ခြင်း
-အောက်ပါ command တစ်ခုလုံးကို ကူးယူပြီး copy-paste တိုက်ရိုက် run ပါ (Domain နှင့် Hash Code တို့ကို Variable များဖြင့် အလိုအလျောက် အစားထိုးသွားမည်ဖြစ်သည်) -
-
-> [!NOTE]
-> ဤဆွဲတင်မည့် Docker command တွင် AmneziaWG 3.1 ၏ အဆင့်မြင့်ဆုံးပုံဖျောက်စနစ် (Header Protection, Content Padding, Randomized Timings, Random Trailers, QUIC mimicry) နှင့် Dynamic Non-overlapping Header Ranges (ကျပန်းခေါင်းစဉ်အကွာအဝေးများ) ကို ဆာဗာစတင်ချိန်တွင် တစ်ခုချင်းစီအတွက် အလိုအလျောက် ထူးခြားစွာ ထုတ်လုပ်သတ်မှတ်ပေးမည်ဖြစ်ပါသည်။
+### အဆင့် (၃) - Automation Script ကို စတင် Run ပါ
 
 ```bash
-# ပြောင်းလဲမှုများ ကောင်းစွာအလုပ်လုပ်စေရန် ယခင် config အဟောင်းများရှိပါက ဖျက်ပစ်ပါ
-sudo rm -f ~/.amnezia-wg-easy/wg0.json ~/.amnezia-wg-easy/wg0.conf
-
-sudo docker run -d \
-  --name=amnezia-wg-easy \
-  -e WG_HOST="$DOMAIN" \
-  -e PASSWORD_HASH="$HASH" \
-  -e PORT=51831 \
-  -e WG_PORT=58210 \
-  -e WG_MTU=1280 \
-  -e WG_PERSISTENT_KEEPALIVE=25 \
-  -e UI_ENABLE_SORT_CLIENTS=true \
-  -e UI_TRAFFIC_STATS=true \
-  -e WG_ENABLE_EXPIRES_TIME=true \
-  -e WG_ENABLE_ONE_TIME_LINKS=true \
-  -v ~/.amnezia-wg-easy:/etc/wireguard \
-  -p 58210:58210/udp \
-  -p 127.0.0.1:51831:51831/tcp \
-  --cap-add=NET_ADMIN \
-  --cap-add=SYS_MODULE \
-  --sysctl="net.ipv4.conf.all.src_valid_mark=1" \
-  --sysctl="net.ipv4.ip_forward=1" \
-  --device=/dev/net/tun:/dev/net/tun \
-  --restart unless-stopped \
-  amnezia-wg-easy:3.1
-```
-
-### အဆင့် (၆) - Web UI အတွက် Nginx Reverse Proxy (Port 8443) နှင့် SSL (HTTPS) တပ်ဆင်ခြင်း
-အခြားသော vpn (ဥပမာ- Outline) များသည် port 443 ကို အသုံးပြုထားတတ်သဖြင့် Web UI panel ကို Port 8443 ဖြင့် သီးသန့် reverse proxy လုပ်နည်း ဖြစ်သည်။
-
-> [!TIP]
-> အကယ်၍ သင့်ဆာဗာပေါ်တွင် Outline VPN က Port `8443` ကို ယူသုံးထားပြီးဖြစ်ပါက အောက်ပါ configurations နှင့် Firewall commands များတွင် `8443` နေရာ၌ လွတ်လပ်သော port တစ်ခု (ဥပမာ- **`9443`** သို့မဟုတ် `8444`) သို့ ပြောင်းလဲအစားထိုးအသုံးပြုပေးရပါမည်။
-
-၁။ Nginx နှင့် Certbot သွင်းရန် -
-```bash
-sudo apt update
-sudo apt install nginx certbot python3-certbot-nginx -y
-```
-
-၂။ SSL Certificate တောင်းယူရန် (Nginx configurations မပြင်ဆင်မီ သီးသန့်တောင်းခြင်း) -
-```bash
-sudo certbot certonly --nginx -d "$DOMAIN"
-```
-
-၃။ Nginx Config ဖိုင်အသစ် ဖန်တီးရန် (Copy-Paste တိုက်ရိုက် run နိုင်ပါသည်) -
-```bash
-sudo bash -c 'cat << "EOF" > /etc/nginx/sites-available/amnezia
-server {
-    listen 8443 ssl;
-    listen [::]:8443 ssl;
-    server_name '$DOMAIN';
-    
-    ssl_certificate /etc/letsencrypt/live/'$DOMAIN'/fullchain.pem;
-    ssl_certificate_key /etc/letsencrypt/live/'$DOMAIN'/privkey.pem;
-
-    location / {
-        proxy_pass http://127.0.0.1:51831;
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
-        
-        # WebSocket Support
-        proxy_set_header Upgrade $http_upgrade;
-        proxy_set_header Connection "upgrade";
-    }
-}
-
-server {
-    listen 80;
-    listen [::]:80;
-    server_name '$DOMAIN';
-    return 301 https://$host:8443$request_uri;
-}
-EOF'
-```
-
-၄။ Config အား Activate လုပ်ပြီး Nginx reload ချရန် -
-```bash
-sudo ln -sf /etc/nginx/sites-available/amnezia /etc/nginx/sites-enabled/
-sudo nginx -t
-sudo systemctl reload nginx
-```
-
-အဆင့်အားလုံး ပြီးမြောက်ပါက Browser မှ **`https://$DOMAIN:8443`** ဟု ရိုက်ထည့်ပြီး Web UI Panel သို့ လုံခြုံစွာ ဝင်ရောက်နိုင်ပြီ ဖြစ်သည်။
-
-### 💡 အပိုဆောင်း စွမ်းဆောင်ရည်မြှင့်တင်မှု (Internet Speed Optimization)
-အဝေးကွာဆုံး ဆာဗာများသို့ ချိတ်ဆက်ရာတွင် (ဥပမာ- မြန်မာနိုင်ငံမှ အမေရိကန်သို့) Internet Download Speed အား သိသာစွာ တိုးတက်ကောင်းမွန်လာစေရန် ဆာဗာတွင် **Google BBR Congestion Control** စနစ်အား အောက်ပါအတိုင်း ဖွင့်လှစ်ပေးပါ -
-
-```bash
-# ၁။ Google BBR နှင့် network buffers များအား sysctl တွင် ဖြည့်သွင်းခြင်း
-sudo bash -c 'cat << EOF >> /etc/sysctl.conf
-net.core.default_qdisc=fq
-net.ipv4.tcp_congestion_control=bbr
-net.ipv4.tcp_rmem=4096 87380 16777216
-net.ipv4.tcp_wmem=4096 65536 16777216
-net.core.rmem_max=16777216
-net.core.wmem_max=16777216
-EOF'
-
-# ၂။ ဆက်တင်များအား စတင်အသက်သွင်းခြင်း
-sudo sysctl -p
-```
----
-
-## 🔄 စနစ်ကို Update ပြုလုပ်နည်း (Update Guide)
-
-စနစ်ကို update ပြုလုပ်ရာတွင် လက်ရှိဖန်တီးထားသော client configurations (ဒေတာများ) မပျက်စီးစေဘဲ နောက်ဆုံးထွက် ကုဒ်များနှင့် default parameters များကို အလွယ်တကူ update လုပ်ရန် အောက်ပါအတိုင်း လုပ်ဆောင်ပါ -
-
-### အဆင့် (၁) - Source Code ကို Update ပြုလုပ်ပြီး Docker Image Build ဆွဲခြင်း
-```bash
-cd zin-awg-easy3
-git pull
-
-# Docker Image ကို Build ပြန်ဆွဲခြင်း
-sudo docker build --network=host -t amnezia-wg-easy:3.1 .
-```
-
-### အဆင့် (၂) - `start.sh` ကို အသုံးပြု၍ UI Features များနှင့်အတူ Container ကို ပြန်လည်စတင်ခြင်း
-ကျွန်ုပ်တို့ ထည့်သွင်းပေးထားသော `start.sh` script သည် လက်ရှိ run နေသော container ထဲမှ Domain နှင့် Password Hash တန်ဖိုးများကို အလိုအလျောက် ဆွဲယူဖတ်ရှုပေးမည်ဖြစ်သောကြောင့် variable များ ထပ်မံပြင်ဆင်ပေးရန် မလိုတော့ပါ။
-
-၁။ Script ကို run ခွင့်ပေးပြီး စတင် run ပါ -
-```bash
-cd zin-awg-easy3
 chmod +x start.sh
 ./start.sh
 ```
 
+---
 
-*(မှတ်ချက် - အကယ်၍ ၎င်းသည် ပထမဆုံးအကြိမ် setup ဖြစ်ပြီး အစကတည်းက စတင်တင်ခြင်းဖြစ်ပါက script က သင့်အား Domain နှင့် Password တောင်းယူပြီး `config.env` ဖိုင်အဖြစ် အလိုအလျောက် သီးသန့်သိမ်းဆည်းပေးသွားမည် ဖြစ်သည်)*
+## ⚙️ Setup Process မေးခွန်းများ
 
+`./start.sh` ကို run လိုက်ပါက script သည် Server Public IP ကို အလိုအလျောက် ရှာဖွေပေးပြီး အောက်ပါအတိုင်း မေးမြန်းပါမည်-
 
-### 💡 (အရေးကြီးအကြံပြုချက်) လက်ရှိရှိပြီးသား Client များအတွက် Obfuscation သစ်များ ပြောင်းလဲခြင်း
-အကယ်၍ သင့်ဆာဗာပေါ်တွင် client configurations အဟောင်းများ ရှိနှင့်ပြီးသားဖြစ်ပါက ၎င်းတို့အား `start.sh` ဖြင့် run လိုက်ပါက AmneziaWG 3.1 ၏ HeaderProtectionKey, ContentPaddingAddition, Timing Parameters များနှင့် Range-based headers များသို့ အလိုအလျောက် update ပြုလုပ်ပေးသွားမည် ဖြစ်ပါသည်။ ကိုယ်တိုင် manual စစ်ဆေးပြင်ဆင်လိုပါက -
+```text
+=== Configure Settings (Press Enter to use Default) ===
+Enter your VPN Domain or Server IP [Default: <YOUR_SERVER_IP>]: 
+Enter Web UI Port [Default: 51833]: 
+Enter VPN UDP Port [Default: 51820]: 
+Enter your VPN Admin Password [Default: admin123]: 
+```
 
-1. `wg0.json` ဖိုင်ကို ဖွင့်ပါ -
-   ```bash
-   nano ~/.amnezia-wg-easy/wg0.json  # သို့မဟုတ် /home/<user>/.amnezia-wg-easy/wg0.json
-   ```
-2. `server` block အောက်ရှိ တန်ဖိုးများကို AmneziaWG 3.1 parameters များအဖြစ် အောက်ပါအတိုင်း တွေ့ရှိရပါမည် -
-   ```json
-       "headerProtectionKey": "pirK7YvnCm8yBVvFS6FDfsH/DoR7iH+mN4UpJBgGkU4=",
-       "contentPaddingAddition": "10-54",
-       "rekeyAfterTime": "103-136",
-       "rekeyTimeout": "4-6",
-       "rejectAfterTime": "170-200",
-       "keepaliveTimeout": "9-13",
-       "maxHandshakeAttempts": "17-20",
-       "randomTrailers": "on",
-       "disableCookies": "on"
-   ```
-3. Container ကို restart ပေးလိုက်ပါ -
-   ```bash
-   sudo docker restart amnezia-wg-easy
-   ```
+> [!TIP]
+> သီးသန့် ပြောင်းလဲလိုခြင်း မရှိပါက **Enter** သာ ဆက်တိုက် ခေါက်သွားနိုင်ပါသည်။ Default တန်ဖိုးများကို အလိုအလျောက် သတ်မှတ်ပေးပါမည်။
+
+---
+
+## 🎉 အောင်မြင်စွာ တပ်ဆင်ပြီးစီးခြင်း (Success Output)
+
+Setup ပြီးဆုံးသည်နှင့် Console တွင် အောက်ပါအတိုင်း ဖော်ပြပေးပါမည်-
+
+```text
+==================================================
+🎉 AmneziaWG 3.1 (AWG3) is now running successfully!
+==================================================
+🌐 Web UI Panel : http://<YOUR_IP>:51833
+🔑 Admin Pass   : admin123
+🛡️  VPN Endpoint : <YOUR_IP>:51820 (UDP)
+📁 Volume Path  : /home/zinko/.amnezia-wg-easy3
+==================================================
+```
+
+မိမိ၏ Web Browser မှတစ်ဆင့် ဖော်ပြပါ **Web UI Panel Link** သို့ ဝင်ရောက်ပြီး Admin Password ဖြင့် Login ဝင်ကာ VPN Client Key များကို ဖန်တီးအသုံးပြုနိုင်ပါပြီ။
+
+---
+
+## 🔑 Web UI Password ပြန်လည်ပြောင်းလဲနည်း (Change Password)
+
+Web UI Panel ၏ Admin Password ကို နောက်ပိုင်းတွင် ပြောင်းလဲလိုပါက အောက်ပါနည်းလမ်း (၂) မျိုးဖြင့် ပြုလုပ်နိုင်ပါသည်:
+
+### နည်းလမ်း (၁) - Command တိုက်ရိုက် run ၍ ပြောင်းလဲခြင်း (အမြန်ဆုံး)
+
+```bash
+cd /home/zinko/zin-awg-easy3
+./start.sh password
+```
+*(သို့မဟုတ် `./start.sh passwd` သို့မဟုတ် `./start.sh -p` ဟု ရိုက်ပါ)*  
+စနစ်က Password အသစ်တောင်းပြီး Container ကို auto reload ချပေးပါမည်။
+
+### နည်းလမ်း (၂) - Menu မှတစ်ဆင့် ရွေးချယ်ခြင်း
+
+`./start.sh` ကို run လိုက်ပါက menu ဖော်ပြပေးပါမည်:
+```text
+Current setup detected with existing config.env.
+1) Keep current settings and start
+2) Change Web UI Admin Password
+3) Reconfigure everything (Domain, Ports, Password)
+Select option [Default: 1]: 2
+```
+နံပါတ် `2` ကို ရွေးချယ်ပြီး Password အသစ် ထည့်သွင်းနိုင်ပါသည်။
+
+---
+
+## 📱 AmneziaWG Client တွင် အသုံးပြုနည်း
+
+1. မိမိဖုန်း (Android / iOS) သို့မဟုတ် Computer (Windows / macOS) တွင် **AmneziaWG** (သို့မဟုတ် **AmneziaVPN**) App ကို ဒေါင်းလုဒ်ရယူပါ။
+2. Web UI (`http://<YOUR_IP>:51833`) သို့ ဝင်ပါ။
+3. **+ New Client** နှိပ်ပြီး နာမည်တစ်ခု ပေးပါ။
+4. ဖုန်းအတွက် **QR Code** scan ဖတ်ပါ (သို့မဟုတ် PC အတွက် **.conf** ဖိုင်ကို ဒေါင်းလုဒ်ဆွဲပြီး Import လုပ်ပါ)။
+5. Connect နှိပ်၍ ချိတ်ဆက်အသုံးပြုနိုင်ပါပြီ။
+
+---
+
+## 🛡️ Firewall & Port Information
+
+`start.sh` က UFW firewall ပေါက်များကို auto ဖွင့်ပေးထားပြီး ဖြစ်ပါသည်:
+- **VPN UDP Traffic:** `51820/udp`
+- **Web UI Management:** `51833/tcp`
+
+*(အကယ်၍ AWS, Oracle, Google Cloud, QQG စသော Cloud Provider များ သုံးစွဲနေပါက Provider Dashboard ၏ Security Group / Inbound Rules တွင် အဆိုပါ port များကို ဖွင့်ပေးထားရန် လိုအပ်ပါသည်)*
+
+---
+
+## 🔄 စနစ်ကို Update ရယူနည်း (Update Guide)
+
+GitHub မှ နောက်ဆုံး update များကို ရယူရန်:
+
+```bash
+cd /home/zinko/zin-awg-easy3
+git pull
+sudo docker build --no-cache --network host -t amnezia-wg-easy:3.1 .
+./start.sh
+```
 
 ---
 
 ## 🗑️ စနစ်ကို ပြန်လည်ဖျက်သိမ်းနည်း (Uninstall Guide)
 
-> [!WARNING]
-> **ဆာဗာပေါ်တွင် အခြားဝန်ဆောင်မှုများ (ဥပမာ- x-ui, vless) ရှိနေပါက ဖတ်ရန်:**
-> အကယ်၍ သင့်ဆာဗာပေါ်တွင် x-ui (vless) သို့မဟုတ် အခြား websites များ လည်ပတ်နေပြီး SSL Certificate သို့မဟုတ် Nginx ကို ပူးတွဲသုံးစွဲနေပါက **Option A (Safe Uninstall)** ကိုသာ သုံးပါ။ Option B ကို သုံးပါက အခြားဝန်ဆောင်မှုများ၏ SSL ပျက်စီးသွားပြီး အလုပ်မလုပ်တော့ဘဲ ဖြစ်သွားနိုင်ပါသည်။
-
-### Option A: Safe Uninstall (အခြား x-ui/vless ဝန်ဆောင်မှုများကို မထိခိုက်စေဘဲ ဖျက်နည်း)
-ဤနည်းလမ်းသည် Nginx configuration များနှင့် shared SSL certificates များကို မထိခိုက်စေဘဲ VPN container နှင့် files များကိုသာ သန့်ရှင်းစွာ ဖျက်ပစ်ပါမည် -
+AWG-3 container နှင့် data များကိုသာ သီးသန့်ဖျက်လိုပါက (AWG-2 ကို လုံးဝမထိခိုက်ပါ):
 
 ```bash
-# Docker Container နှင့် Config files များကိုသာ သီးသန့်ဖျက်ခြင်း
-sudo docker stop amnezia-wg-easy
-sudo docker rm amnezia-wg-easy
-sudo docker rmi amnezia-wg-easy:3.1 amnezia-wg-easy:2.0 2>/dev/null
-sudo rm -rf ~/.amnezia-wg-easy
-sudo rm -f ./config.env
+sudo docker stop amnezia-wg-easy3
+sudo docker rm amnezia-wg-easy3
+sudo docker rmi amnezia-wg-easy:3.1
+sudo rm -rf ~/.amnezia-wg-easy3 /home/zinko/.amnezia-wg-easy3
+sudo rm -f config.env
 ```
 
-### Option B: Full Uninstall (ဆာဗာတစ်ခုလုံးမှ လုံးဝ ဥဿုံ ဖျက်သိမ်းနည်း)
-ဆာဗာတွင် ဤ VPN တစ်ခုတည်းကိုသာ သီးသန့်သုံးထားပြီး အရာအားလုံးကို အပြီးတိုင် ဖျက်ထုတ်လိုပါက အောက်ပါအတိုင်း လုပ်ဆောင်ပါ -
-
-```bash
-# ၁။ Docker Container နှင့် Image များ ဖျက်ခြင်း
-sudo docker stop amnezia-wg-easy
-sudo docker rm amnezia-wg-easy
-sudo docker rmi amnezia-wg-easy:3.1 amnezia-wg-easy:2.0 2>/dev/null
-sudo rm -rf ~/.amnezia-wg-easy
-sudo rm -f ./config.env
-
-# ၂။ SSL နှင့် Nginx configurations များ ဖျက်ခြင်း
-sudo certbot delete --cert-name vpn.yourdomain.com
-sudo rm /etc/nginx/sites-enabled/amnezia
-sudo rm /etc/nginx/sites-available/amnezia
-sudo systemctl reload nginx
-
-# ၃။ Firewall ports များ ပြန်ပိတ်ခြင်း
-sudo ufw delete allow 58210/udp
-sudo ufw delete allow 80/tcp
-sudo ufw delete allow 8443/tcp
-sudo ufw reload
-
-# ၄။ NAT Configuration ဖျက်ခြင်း
-sudo rm /etc/modules-load.d/iptable_nat.conf
-```
 
 ---
 
-## 🛠️ အဖြစ်များသော ပြဿနာများနှင့် ဖြေရှင်းနည်းများ (Troubleshooting Guide)
+## 📊 ဆာဗာ၏ အင်တာနက် အဝင်အထွက် စစ်ဆေးခြင်း (Server Monitoring & Speed Test)
 
-### ၁။ `Could not resolve host: github.com` သို့မဟုတ် Docker Build DNS Timeout ဖြစ်ခြင်း
-တပ်ဆင်စဉ် (သို့မဟုတ်) Update လုပ်စဉ်အတွင်း အင်တာနက်လိပ်စာ ရှာမတွေ့သည့် DNS Error တက်လာပါက (အချို့ VPS Provider များတွင် systemd-resolved DNS stub တုံ့ပြန်မှု နှေးကွေးခြင်း/မရှိခြင်းကြောင့် ဖြစ်တတ်သည်) အောက်ပါအတိုင်း DNS ကို Static ပြောင်းလဲပြီး ဖြေရှင်းနိုင်ပါသည် -
-
-```bash
-# DNS ကို Cloudflare (1.1.1.1) သို့ အမြဲတမ်း ပွင့်စေရန် ပြောင်းလဲသတ်မှတ်ခြင်း
-sudo rm -f /etc/resolv.conf
-echo "nameserver 1.1.1.1" | sudo tee /etc/resolv.conf
-
-# Docker သို့ ပြောင်းလဲမှု သက်ရောက်စေရန် Docker Service အား Restart ချခြင်း
-sudo systemctl restart docker
-```
-၎င်းနောက် `git pull` နှင့် `sudo docker build --network=host -t amnezia-wg-easy:3.1 .` တို့ကို ပြန်လည်လုပ်ဆောင်နိုင်ပါသည်။
-
-### ၂။ ချိတ်ဆက်မှု မကြာခဏ ပြတ်တောက်ခြင်း (Intermittent Disconnection)
-အကယ်၍ VPN ချိတ်ဆက်ပြီးနောက် စက္ကန့် ၃၀ မှ ၆၀ အတွင်း လိုင်းပြတ်တောက်သွားခြင်း (သို့မဟုတ်) ချိတ်လိုက်ပြုတ်လိုက် ဖြစ်နေပါက အောက်ပါအချက်များကို စစ်ဆေးပါ -
-* **MTU Size ပြဿနာ:** မိုဘိုင်းဖုန်းလိုင်းများအတွက် default MTU size ကြီးလွန်းပါက လိုင်းပြုတ်တတ်သည်။ လက်ရှိ Default `MTU = 1280` ကို အသုံးပြုထားရန် လိုအပ်သည်။
-* **PersistentKeepalive မရှိခြင်း:** NAT firewall များအောက်တွင် port ပိတ်မသွားစေရန် `PersistentKeepalive = 25` သတ်မှတ်ထားရမည်။
-
-ကျွန်ုပ်တို့၏ နောက်ဆုံးဗားရှင်းတွင် ဤတန်ဖိုးနှစ်ခုလုံးကို `1280` နှင့် `25` အဖြစ် Default သတ်မှတ်ပေးထားပြီးဖြစ်သောကြောင့် `start.sh` ဖြင့် update လုပ်လိုက်ရုံဖြင့် အလိုအလျောက် သက်ရောက်သွားမည် ဖြစ်သည်။
-
-### ၃။ Docker သွင်းစဉ် 'download.docker.com Connection timed out' သို့မဟုတ် 'Unit file docker.service does not exist' ဖြစ်ခြင်း
-`curl -fsSL https://get.docker.com | sudo bash` ဖြင့် Docker သွင်းစဉ် တရားဝင် Docker repository မှ download ချိတ်ဆက်မှု timeout ဖြစ်သွားပါက (အချို့ VPS များတွင် Docker CDN သို့မဟုတ် DNS ကြောင့် ဖြစ်တတ်သည်) Ubuntu ၏ တရားဝင် repository မှ native `docker.io` ကို အောက်ပါအတိုင်း တိုက်ရိုက်သွင်းနိုင်ပါသည် -
+ဆာဗာ၏ ကွန်ရက်အမြန်နှုန်းနှင့် bandwidth ကို စောင့်ကြည့်လိုပါက:
 
 ```bash
-# DNS ကို Static ပြောင်းလဲခြင်း
-sudo rm -f /etc/resolv.conf
-echo "nameserver 1.1.1.1" | sudo tee /etc/resolv.conf
-echo "nameserver 8.8.8.8" | sudo tee -a /etc/resolv.conf
+# Speed Test စမ်းသပ်ရန်
+sudo apt install speedtest-cli -y && speedtest-cli
 
-# Ubuntu native docker.io နှင့် git ကို သွင်းခြင်း
-sudo apt update
-sudo apt install -y docker.io git
-
-# Docker service ကို စတင်လည်ပတ်စေခြင်း
-sudo systemctl enable --now docker
+# Real-time Traffic (Bandwidth) စောင့်ကြည့်ရန်
+sudo apt install nload -y && nload
 ```
 
-### ၄။ Web UI ပွင့်သော်လည်း VPN Key ချိတ်မရခြင်း / Handshake မတက်ခြင်း (Domain DNS Blocking & UDP Port Issues)
-Web UI စာမျက်နှာကို ပုံမှန်အတိုင်း ဝင်ရောက်နိုင်သော်လည်း၊ ဖုန်းထဲတွင် VPN ချိတ်ဆက်သည့်အခါ `latest handshake` မပေါ်ဘဲ အင်တာနက်မထွက်ခြင်း ဖြစ်ပေါ်ပါက အောက်ပါအချက်များကြောင့် ဖြစ်ပါသည် -
-
-* **Domain DNS Blocking / Poisoning:** ပြည်တွင်း မိုဘိုင်းဖုန်းလိုင်းများ (MPT, Atom, Ooredoo စသည်) သည် `.top`, `.xyz` စသည့် Domain များကို DNS Block / Poisoning ပြုလုပ်ထားတတ်သည်။ ထို့ကြောင့် ဖုန်းက Endpoint ဒိုမိန်းကို IP ရှာမတွေ့ဘဲ ဆာဗာသို့ packet လုံးဝမပို့နိုင်တော့ပါ။
-* **Cloud Provider UDP Firewall ပိတ်ထားခြင်း:** VPS Provider ၏ Dashboard (Security Group / Firewall) တွင် `udp` protocol ကို ဖွင့်မပေးထားခြင်း။
-* **High UDP Port ပိတ်ဆို့ခံရခြင်း:** မူလ `58210/udp` ကဲ့သို့သော port များကို မိုဘိုင်းဖုန်းလိုင်းများက ပိတ်ထားတတ်ခြင်း။
-
-**ဖြေရှင်းနည်း အဆင့်ဆင့် -**
-
-၁။ **Cloud Dashboard တွင် UDP Rule ဖွင့်ပေးခြင်း:**
-VPS ဝယ်ယူထားသော Cloud Provider (ဥပမာ- QQG.NET, Oracle, AWS) ၏ Security Group ထဲတွင် `Protocol: udp`၊ `Port range: 1-65535` (သို့မဟုတ် `443`)၊ `Authorized IP: 0.0.0.0/0` ကို Inbound Rule အဖြစ် ထည့်သွင်းပေးပါ။
-
-၂။ **Direct IP နှင့် UDP 443 ဖြင့် Container ကို စတင်လည်ပတ်စေခြင်း:**
-Domain အစား ဆာဗာ၏ Direct IP ကို အသုံးပြုခြင်းဖြင့် DNS ပိတ်ဆို့မှုအားလုံးကို ကျော်ဖြတ်နိုင်သလို၊ VPN Port ကို `UDP 443` (QUIC Web Traffic) အဖြစ် အသုံးပြုလိုက်ပါက မည်သည့်ဖုန်းလိုင်းမှ လုံးဝပိတ်ဆို့ခွင့် မရှိတော့ပါ (Web UI က TCP 443 ကို သုံးပြီး၊ VPN က UDP 443 ကို သုံးသောကြောင့် တစ်ခုနှင့်တစ်ခု မငြိစွန်းပါ) -
-
-```bash
-# NAT Module နှင့် IP Forwarding ဖွင့်ခြင်း
-sudo modprobe iptable_nat
-echo "iptable_nat" | sudo tee /etc/modules-load.d/iptable_nat.conf
-sudo sysctl -w net.ipv4.ip_forward=1
-
-# Firewall တွင် UDP 443 ကို ဖွင့်ခြင်း
-sudo ufw allow 443/udp
-sudo ufw reload
-
-# ဆာဗာ၏ Direct Public IP ဖြင့် Container အသစ် စတင်ခြင်း
-SERVER_IP=$(curl -s -4 ifconfig.me)
-HASH=$(sudo docker inspect amnezia-wg-easy --format='{{range .Config.Env}}{{println .}}{{end}}' | grep '^PASSWORD_HASH=' | cut -d= -f2)
-VOL_DIR="/home/zinko/.amnezia-wg-easy"
-[ ! -d "$VOL_DIR" ] && VOL_DIR="/root/.amnezia-wg-easy"
-
-sudo docker stop amnezia-wg-easy
-sudo docker rm amnezia-wg-easy
-
-sudo docker run -d \
-  --name=amnezia-wg-easy \
-  -e WG_HOST="$SERVER_IP" \
-  -e PASSWORD_HASH="$HASH" \
-  -e PORT=51831 \
-  -e WG_PORT=443 \
-  -e WG_MTU=1280 \
-  -e WG_PERSISTENT_KEEPALIVE=25 \
-  -e UI_ENABLE_SORT_CLIENTS=true \
-  -e UI_TRAFFIC_STATS=true \
-  -e WG_ENABLE_EXPIRES_TIME=true \
-  -e WG_ENABLE_ONE_TIME_LINKS=true \
-  -v "$VOL_DIR:/etc/wireguard" \
-  -p 443:443/udp \
-  -p 127.0.0.1:51831:51831/tcp \
-  --cap-add=NET_ADMIN \
-  --cap-add=SYS_MODULE \
-  --sysctl="net.ipv4.conf.all.src_valid_mark=1" \
-  --sysctl="net.ipv4.ip_forward=1" \
-  --device=/dev/net/tun:/dev/net/tun \
-  --restart unless-stopped \
-  amnezia-wg-easy:3.1
-```
-
-၎င်းနောက် Web UI မှ ထုတ်ပေးသမျှ QR Code များနှင့် Config ဖိုင်များသည် Direct IP ဖြင့် အလိုအလျောက် ထွက်လာမည်ဖြစ်ပြီး Scan ဖတ်ရုံဖြင့် ချက်ချင်း ချိတ်ဆက်မိသွားမည် ဖြစ်သည်။
-
----
-
-## 📊 ဆာဗာ၏ အင်တာနက် အဝင်အထွက် စစ်ဆေးခြင်း (Server Network Monitoring & Speed Test)
-
-ဆာဗာ၏ ကွန်ရက်အမြန်နှုန်းနှင့် bandwidth ကို စောင့်ကြည့်ရန် အောက်ပါ tools များကို အသုံးပြုနိုင်ပါသည် -
-
-### ၁။ ဆာဗာ၏ အင်တာနက်အမြန်နှုန်း (Speed Test) ကို တိုင်းတာခြင်း
-```bash
-# speedtest testing tool ကို သွင်းပါ
-sudo apt install speedtest-cli -y
-
-# Speedtest စမ်းသပ်ခြင်းကို စတင်ပါ
-speedtest-cli
-```
-
-### ၂။ ဆာဗာ၏ အဝင်အထွက် Traffic (Bandwidth) အား Real-time တိုက်ရိုက်ကြည့်ရှုခြင်း
-```bash
-# nload network monitor ကို သွင်းပါ
-sudo apt install nload -y
-
-# real-time စောင့်ကြည့်စနစ်ကို ဖွင့်ပါ (ထွက်လိုပါက keyboard မှ q ကို နှိပ်ပါ)
-nload
-```
-
-### ၃။ ဆာဗာသို့ မည်သည့် IP များက ချိတ်ဆက်ပြီး အင်တာနက် သုံးနေသလဲ စောင့်ကြည့်ခြင်း
-```bash
-# iftop ကို သွင်းပါ
-sudo apt install iftop -y
-
-# တိုက်ရိုက် စောင့်ကြည့်ပါ (ထွက်လိုပါက keyboard မှ q ကို နှိပ်ပါ)
-sudo iftop
-```
 
 
