@@ -1,5 +1,6 @@
 'use strict';
 
+const crypto = require('node:crypto');
 const { release: { version } } = require('./package.json');
 
 module.exports.RELEASE = version;
@@ -12,12 +13,12 @@ module.exports.WG_DEVICE = process.env.WG_DEVICE || 'eth0';
 module.exports.WG_HOST = process.env.WG_HOST;
 module.exports.WG_PORT = process.env.WG_PORT || '51820';
 module.exports.WG_CONFIG_PORT = process.env.WG_CONFIG_PORT || process.env.WG_PORT || '51820';
-module.exports.WG_MTU = process.env.WG_MTU || '1200';
+module.exports.WG_MTU = process.env.WG_MTU || '1280';
 module.exports.WG_PERSISTENT_KEEPALIVE = process.env.WG_PERSISTENT_KEEPALIVE || '25';
 module.exports.WG_DEFAULT_ADDRESS = process.env.WG_DEFAULT_ADDRESS || '10.8.0.x';
 module.exports.WG_DEFAULT_DNS = typeof process.env.WG_DEFAULT_DNS === 'string'
   ? process.env.WG_DEFAULT_DNS
-  : '1.1.1.1';
+  : '1.1.1.1, 1.0.0.1';
 module.exports.WG_ALLOWED_IPS = process.env.WG_ALLOWED_IPS || '0.0.0.0/0, ::/0';
 
 module.exports.WG_PRE_UP = process.env.WG_PRE_UP || '';
@@ -48,28 +49,67 @@ module.exports.DICEBEAR_TYPE = process.env.DICEBEAR_TYPE || false;
 module.exports.USE_GRAVATAR = process.env.USE_GRAVATAR || false;
 
 const getRandomInt = (min, max) => min + Math.floor(Math.random() * (max - min));
-const getRandomJunkSize = () => getRandomInt(15, 150);
-const getRandomHeaderRange = (min, max, rangeSize) => {
-  const start = getRandomInt(min, max - rangeSize);
-  return `${start}-${start + rangeSize}`;
+// AWG 3.1 HeaderProtectionKey requires junk sizes S1..S4 to be at least 12
+const getRandomJunkSize = () => getRandomInt(15, 60);
+
+const makeHeaderRanges = (totalMin = 1000000000, totalMax = 4294967295) => {
+  const zoneSize = Math.floor((totalMax - totalMin) / 4);
+  const result = [];
+  for (let i = 0; i < 4; i++) {
+    const zStart = totalMin + i * zoneSize;
+    const zEnd = zStart + zoneSize - 1;
+    const padding = Math.min(100000, Math.floor(zoneSize / 4));
+    const a = getRandomInt(zStart + padding, zEnd - padding);
+    const b = getRandomInt(a + 1, zEnd);
+    result.push(`${a}-${b}`);
+  }
+  return result;
 };
 
+const defaultHeaderRanges = makeHeaderRanges();
+
 module.exports.JC = process.env.JC || getRandomInt(3, 10);
-module.exports.JMIN = process.env.JMIN || 50;
-module.exports.JMAX = process.env.JMAX || 1000;
+module.exports.JMIN = process.env.JMIN || 15;
+module.exports.JMAX = process.env.JMAX || 52;
 module.exports.S1 = process.env.S1 || getRandomJunkSize();
 module.exports.S2 = process.env.S2 || getRandomJunkSize();
-module.exports.S3 = process.env.S3 || 16;
-module.exports.S4 = process.env.S4 || 18;
-module.exports.H1 = process.env.H1 || getRandomHeaderRange(1, 100_000_000, 100);
-module.exports.H2 = process.env.H2 || getRandomHeaderRange(100_000_001, 200_000_000, 100);
-module.exports.H3 = process.env.H3 || getRandomHeaderRange(200_000_001, 300_000_000, 2);
-module.exports.H4 = process.env.H4 || getRandomHeaderRange(300_000_001, 2_000_000_000, 100_000_000);
+module.exports.S3 = process.env.S3 || getRandomJunkSize();
+module.exports.S4 = process.env.S4 || getRandomJunkSize();
+module.exports.H1 = process.env.H1 || defaultHeaderRanges[0];
+module.exports.H2 = process.env.H2 || defaultHeaderRanges[1];
+module.exports.H3 = process.env.H3 || defaultHeaderRanges[2];
+module.exports.H4 = process.env.H4 || defaultHeaderRanges[3];
 
+// Special junk packets (optional)
 module.exports.I1 = process.env.I1 || '<b 0xc700000001><rc 8><t><r 100>';
 module.exports.I2 = process.env.I2 || '<b 0xf6ab3267fa><t><rc 20><r 80>';
 module.exports.I3 = process.env.I3 || '';
 module.exports.I4 = process.env.I4 || '';
 module.exports.I5 = process.env.I5 || '';
+
+// AWG 3.1 parameters
+const getRandomPaddingRange = () => {
+  const min = getRandomInt(8, 20);
+  return `${min}-${min + getRandomInt(24, 48)}`;
+};
+
+const rekeyAfterStart = getRandomInt(100, 130);
+const defaultRekeyAfterTime = `${rekeyAfterStart}-${rekeyAfterStart + getRandomInt(10, 30)}`;
+const defaultRekeyTimeout = `${getRandomInt(4, 6)}-${getRandomInt(6, 8)}`;
+const rejectAfterStart = getRandomInt(rekeyAfterStart + 40, rekeyAfterStart + 70);
+const defaultRejectAfterTime = `${rejectAfterStart}-${rejectAfterStart + getRandomInt(10, 30)}`;
+const defaultKeepaliveTimeout = `${getRandomInt(8, 12)}-${getRandomInt(13, 16)}`;
+const defaultHandshakeAttempts = `${getRandomInt(15, 20)}-${getRandomInt(20, 25)}`;
+
+module.exports.HEADER_PROTECTION_KEY = process.env.HEADER_PROTECTION_KEY || crypto.randomBytes(32).toString('base64');
+module.exports.CONTENT_PADDING_ADDITION = process.env.CONTENT_PADDING_ADDITION || getRandomPaddingRange();
+module.exports.REKEY_AFTER_TIME = process.env.REKEY_AFTER_TIME || defaultRekeyAfterTime;
+module.exports.REKEY_TIMEOUT = process.env.REKEY_TIMEOUT || defaultRekeyTimeout;
+module.exports.REJECT_AFTER_TIME = process.env.REJECT_AFTER_TIME || defaultRejectAfterTime;
+module.exports.KEEPALIVE_TIMEOUT = process.env.KEEPALIVE_TIMEOUT || defaultKeepaliveTimeout;
+module.exports.MAX_HANDSHAKE_ATTEMPTS = process.env.MAX_HANDSHAKE_ATTEMPTS || defaultHandshakeAttempts;
+module.exports.RANDOM_TRAILERS = process.env.RANDOM_TRAILERS || 'on';
+module.exports.DISABLE_COOKIES = process.env.DISABLE_COOKIES || 'on';
+
 
 

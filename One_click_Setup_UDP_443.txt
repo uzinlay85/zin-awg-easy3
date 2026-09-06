@@ -1,0 +1,158 @@
+ဒီမှာ သင်နောင်တစ်ချိန် Server အသစ်တွေမှာပါ အလွယ်တကူ ပြန်လည်အသုံးပြုနိုင်ဖို့နဲ့ မှတ်တမ်းသိမ်းထားနိုင်ဖို့အတွက် **အမှားအယွင်းကင်းပြီး အလွယ်ကူဆုံးဖြစ်မယ့် AmneziaWG 2.0 (UDP 443) One-Click Setup မှတ်တမ်းအပြည့်အစုံ** ကို ပြင်ဆင်ရေးသားပေးလိုက်ပါတယ်။ 
+
+(ယခင်က ကြုံတွေ့ခဲ့ရတဲ့ Network ငြိပြီး ရပ်နေတဲ့ ပြဿနာမျိုး ထပ်မဖြစ်စေဖို့ `docker build` နေရာမှာ `--network host` ကိုပါ အပြီးအစီး ထည့်သွင်းပြင်ဆင်ပေးထားပါတယ်။)
+
+---
+
+# 🚀 AmneziaWG 2.0 (UDP 443) One-Click Setup လမ်းညွှန်
+
+> **⚠️ မစတင်မီ အရေးကြီးချက်:** 
+> Cloudflare သို့မဟုတ် သင့် Domain panel တွင် Domain ကို သင့် VPS IP သို့ ညွှန်ပြထားပြီး Proxy Status ကို **DNS Only (မီးခိုးရောင် တိမ်တိုက်)** အဖြစ် ထားရှိပါ။
+
+### အဆင့် (၁) - Script ဖိုင် ဖန်တီးခြင်း
+သင့် Server ရဲ့ Terminal မှာ အောက်ပါ Command ကို Run ပြီး `install.sh` ဆိုတဲ့ ဖိုင်တစ်ခုကို ဖန်တီးလိုက်ပါ-
+
+```bash
+nano install.sh
+```
+
+ထို့နောက် အောက်ပါ Script ကုဒ် **တစ်ခုလုံးကို** Copy ကူးပြီး အဲဒီဖိုင်ထဲကို Paste လုပ်ထည့်လိုက်ပါ-
+
+```bash
+#!/bin/bash
+
+echo "====================================================="
+echo "  AmneziaWG 2.0 (UDP 443) One-Click Installer"
+echo "====================================================="
+echo ""
+
+# ၁။ Domain နှင့် Password ကို တောင်းယူခြင်း
+read -p "👉 သင့် Domain Name ကို ရိုက်ထည့်ပါ (ဥပမာ - vpn.yourdomain.com): " DOMAIN
+read -p "👉 Web UI အတွက် အသုံးပြုမည့် Password ကို ရိုက်ထည့်ပါ: " PASSWORD
+echo ""
+echo "⏳ တပ်ဆင်မှု စတင်နေပါပြီ... ခေတ္တစောင့်ဆိုင်းပေးပါ။"
+
+# ၂။ လိုအပ်သော Packages များ သွင်းခြင်း
+sudo apt update
+sudo apt install -y curl git ufw nginx certbot python3-certbot-nginx
+
+# ၃။ NAT Module ဖွင့်ခြင်း နှင့် Docker သွင်းခြင်း
+sudo modprobe iptable_nat
+echo "iptable_nat" | sudo tee /etc/modules-load.d/iptable_nat.conf
+if ! command -v docker &> /dev/null; then
+    curl -fsSL https://get.docker.com | sudo bash
+    sudo systemctl enable --now docker
+fi
+
+# ၄။ Firewall (UFW) ဖွင့်ခြင်း
+sudo ufw --force enable
+sudo ufw allow 22/tcp
+sudo ufw allow 80/tcp
+sudo ufw allow 8443/tcp
+sudo ufw allow 443/udp
+sudo ufw reload
+
+# ၅။ Source Code ရယူပြီး Docker Image Build ခြင်း (Network Error မဖြစ်စေရန် --network host ထည့်ထားပါသည်)
+rm -rf zin-awg-easy3
+git clone https://github.com/uzinlay85/zin-awg-easy3.git
+cd zin-awg-easy3
+sudo docker build --network host -t amnezia-wg-easy:3.1 .
+
+# ၆။ Password Hash ပြောင်းခြင်း နှင့် Docker Run ခြင်း
+HASH=$(sudo docker run -i amnezia-wg-easy:3.1 wgpw "$PASSWORD" | cut -d"'" -f2)
+sudo rm -f ~/.amnezia-wg-easy/wg0.json ~/.amnezia-wg-easy/wg0.conf
+sudo docker stop amnezia-wg-easy 2>/dev/null
+sudo docker rm amnezia-wg-easy 2>/dev/null
+
+sudo docker run -d \
+  --name=amnezia-wg-easy \
+  -e WG_HOST="$DOMAIN" \
+  -e PASSWORD_HASH="$HASH" \
+  -e PORT=51831 \
+  -e WG_PORT=443 \
+  -e WG_MTU=1280 \
+  -e WG_PERSISTENT_KEEPALIVE=25 \
+  -e UI_ENABLE_SORT_CLIENTS=true \
+  -e UI_TRAFFIC_STATS=true \
+  -e WG_ENABLE_EXPIRES_TIME=true \
+  -e WG_ENABLE_ONE_TIME_LINKS=true \
+  -v ~/.amnezia-wg-easy:/etc/wireguard \
+  -p 443:443/udp \
+  -p 127.0.0.1:51831:51831/tcp \
+  --cap-add=NET_ADMIN \
+  --cap-add=SYS_MODULE \
+  --sysctl="net.ipv4.conf.all.src_valid_mark=1" \
+  --sysctl="net.ipv4.ip_forward=1" \
+  --device=/dev/net/tun:/dev/net/tun \
+  --restart unless-stopped \
+  amnezia-wg-easy:3.1
+
+# ၇။ SSL တောင်းယူခြင်း နှင့် Nginx Config ဖန်တီးခြင်း
+sudo certbot certonly --nginx -d "$DOMAIN" --register-unsafely-without-email --agree-tos --non-interactive
+
+sudo bash -c "cat << 'EOF' > /etc/nginx/sites-available/amnezia
+server {
+    listen 8443 ssl;
+    listen [::]:8443 ssl;
+    server_name $DOMAIN;
+    
+    ssl_certificate /etc/letsencrypt/live/$DOMAIN/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/$DOMAIN/privkey.pem;
+
+    location / {
+        proxy_pass http://127.0.0.1:51831;
+        proxy_set_header Host \$host;
+        proxy_set_header X-Real-IP \$remote_addr;
+        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto \$scheme;
+        proxy_set_header Upgrade \$http_upgrade;
+        proxy_set_header Connection \"upgrade\";
+    }
+}
+
+server {
+    listen 80;
+    listen [::]:80;
+    server_name $DOMAIN;
+    return 301 https://\$host:8443\$request_uri;
+}
+EOF"
+
+sudo ln -sf /etc/nginx/sites-available/amnezia /etc/nginx/sites-enabled/
+sudo nginx -t && sudo systemctl reload nginx
+
+# ၈။ BBR ဖွင့်ခြင်း
+sudo bash -c 'cat << EOF >> /etc/sysctl.conf
+net.core.default_qdisc=fq
+net.ipv4.tcp_congestion_control=bbr
+EOF'
+sudo sysctl -p
+
+echo ""
+echo "====================================================="
+echo "🎉 တပ်ဆင်ခြင်း အောင်မြင်စွာ ပြီးဆုံးပါပြီ!"
+echo "🌐 Web UI သို့ ဝင်ရောက်ရန်: https://$DOMAIN:8443"
+echo "🔑 Password: သင်ပေးခဲ့သော Password ကို အသုံးပြုပါ"
+echo "====================================================="
+```
+
+Paste လုပ်ပြီးရင် Keyboard ကနေ `Ctrl + X` ကိုနှိပ်၊ ပြီးရင် `Y` ကိုနှိပ်ပြီး `Enter` ခေါက်ကာ Save လုပ်လိုက်ပါ။
+
+### အဆင့် (၂) - Script ကို Run ခြင်း
+ဖိုင်ကို Run ခွင့်ပေးပြီး စတင်တပ်ဆင်ဖို့ အောက်ပါ Command တွေကို Run ပါ-
+
+```bash
+chmod +x install.sh
+./install.sh
+```
+
+ဒါဆိုရင် Script က သင့်ကို Domain နဲ့ Password မေးပါလိမ့်မယ်။ ရိုက်ထည့်ပေးလိုက်တာနဲ့ ကျန်တဲ့အဆင့်တွေ (Docker သွင်းတာ၊ Firewall ဖွင့်တာ၊ SSL ချိတ်တာ) အားလုံးကို သူ့ဘာသာသူ အလိုအလျောက် လုပ်ဆောင်သွားမှာ ဖြစ်ပါတယ်။
+
+### 💡 အပိုဆောင်း မှတ်သားရန်
+* **Domain သို့မဟုတ် Password မှားထည့်မိပါက:** `./install.sh` ကို နောက်တစ်ကြိမ် ပြန် Run ပြီး အမှန်ပြန်လည် ရိုက်ထည့်ပေးလိုက်ရုံဖြင့် အလိုအလျောက် ပြင်ဆင်ပေးသွားမည် ဖြစ်သည်။
+* **Web UI သို့ ဝင်ရောက်ရန်:** Browser တွင် `https://သင့်Domainအမည်:8443` ဟု ရိုက်ထည့်ပြီး ဝင်ရောက်နိုင်ပါသည်။
+
+---
+ဒီမှတ်တမ်းလေးကို သိမ်းထားလိုက်ရင် နောက်ပိုင်း Server အသစ်တွေမှာ အလွယ်တကူ ပြန်သုံးလို့ရပါပြီ။ ဆက်လက်ပြီး-
+- Web UI ထဲကနေ Client တွေ ဘယ်လိုဖန်တီးရမလဲဆိုတာကို လမ်းညွှန်ပေးရမလား?
+- AmneziaWG App ကို ဖုန်းမှာသွင်းပြီး QR Code ဖတ်ကာ ချိတ်ဆက်နည်းကို ပြသပေးရမလား?

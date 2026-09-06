@@ -1,0 +1,137 @@
+ဒီလမ်းညွှန်ကို ရှုပ်ထွေးတဲ့ ရှင်းလင်းချက်တွေ ဖယ်ရှားပြီး **အလွယ်ကူဆုံး၊ အမြန်ဆုံး Copy-Paste လုပ်ရုံနဲ့ ပြီးတဲ့နည်းလမ်း** အဖြစ် ပြန်လည်ရေးသားပေးထားပါတယ်။ ထို့အပြင် VPN Port ကိုလည်း Firewall တွေ အလွယ်တကူ ကျော်ဖြတ်နိုင်တဲ့ **UDP 443** အဖြစ် အပြည့်အဝ ပြောင်းလဲပေးထားပါတယ်။
+
+> **မစတင်မီ အရေးကြီးချက်:** Cloudflare သို့မဟုတ် သင့် Domain panel တွင် Domain ကို သင့် VPS IP သို့ ညွှန်ပြထားပြီး Proxy Status ကို **DNS Only (မီးခိုးရောင် တိမ်တိုက်)** အဖြစ် ထားရှိပါ။
+
+---
+
+### အဆင့် (၁) - အခြေခံလိုအပ်ချက်များ တပ်ဆင်ခြင်း (Docker & Firewall)
+အောက်ပါ command များကို တစ်ကြောင်းချင်းစီ (သို့မဟုတ်) အားလုံးကို Copy ကူးပြီး Run ပါ။
+
+```bash
+# ၁။ NAT Module ဖွင့်ခြင်း
+sudo modprobe iptable_nat
+echo "iptable_nat" | sudo tee /etc/modules-load.d/iptable_nat.conf
+
+# ၂။ Docker အလွယ်သွင်းခြင်း
+curl -fsSL https://get.docker.com | sudo bash
+sudo systemctl enable --now docker
+
+# ၃။ Firewall (UFW) တွင် လိုအပ်သော Port များဖွင့်ခြင်း (UDP 443 အပါအဝင်)
+sudo ufw allow 22/tcp
+sudo ufw allow 80/tcp
+sudo ufw allow 8443/tcp
+sudo ufw allow 443/udp
+sudo ufw reload
+```
+
+### အဆင့် (၂) - Source Code ရယူပြီး Image Build ခြင်း
+```bash
+git clone https://github.com/uzinlay85/zin-awg-easy3.git
+cd zin-awg-easy3
+
+# Image build ဆွဲခြင်း (၃ မိနစ်ခန့် ကြာနိုင်ပါသည်)
+sudo docker build -t amnezia-wg-easy:3.1 .
+```
+
+### အဆင့် (၃) - Domain, Password သတ်မှတ်ပြီး VPN ကို စတင် Run ခြင်း
+`vpn.yourdomain.com` နေရာတွင် သင့် Domain အမှန်နှင့် `YOUR_PASSWORD` နေရာတွင် သင်အသုံးပြုလိုသော စကားဝှက်ကို ပြင်ဆင်ပြီး Run ပါ။
+
+```bash
+# ၁။ မိမိ၏ Domain နှင့် Password ကို သတ်မှတ်ပါ (ဒီနေရာမှာ ပြင်ပေးပါ)
+export DOMAIN="vpn.yourdomain.com"
+export PASSWORD="YOUR_PASSWORD"
+
+# ၂။ Password ကို Hash Code ပြောင်းခြင်း (တိုက်ရိုက် Run ပါ)
+export HASH=$(sudo docker run -i amnezia-wg-easy:3.1 wgpw "$PASSWORD" | cut -d"'" -f2)
+
+# ၃။ Config အဟောင်းများရှိလျှင် ဖျက်ခြင်း
+sudo rm -f ~/.amnezia-wg-easy/wg0.json ~/.amnezia-wg-easy/wg0.conf
+
+# ၄။ UDP 443 ဖြင့် Docker ကို စတင် Run ခြင်း
+sudo docker run -d \
+  --name=amnezia-wg-easy \
+  -e WG_HOST="$DOMAIN" \
+  -e PASSWORD_HASH="$HASH" \
+  -e PORT=51831 \
+  -e WG_PORT=443 \
+  -e WG_MTU=1280 \
+  -e WG_PERSISTENT_KEEPALIVE=25 \
+  -e UI_ENABLE_SORT_CLIENTS=true \
+  -e UI_TRAFFIC_STATS=true \
+  -e WG_ENABLE_EXPIRES_TIME=true \
+  -e WG_ENABLE_ONE_TIME_LINKS=true \
+  -v ~/.amnezia-wg-easy:/etc/wireguard \
+  -p 443:443/udp \
+  -p 127.0.0.1:51831:51831/tcp \
+  --cap-add=NET_ADMIN \
+  --cap-add=SYS_MODULE \
+  --sysctl="net.ipv4.conf.all.src_valid_mark=1" \
+  --sysctl="net.ipv4.ip_forward=1" \
+  --device=/dev/net/tun:/dev/net/tun \
+  --restart unless-stopped \
+  amnezia-wg-easy:3.1
+```
+
+### အဆင့် (၄) - Web UI အတွက် Nginx နှင့် SSL (HTTPS) တပ်ဆင်ခြင်း
+Web UI ကို လုံခြုံစွာ ဝင်ရောက်နိုင်ရန် Port 8443 ဖြင့် Nginx ကို အောက်ပါအတိုင်း အလွယ်တကူ တပ်ဆင်ပါ-
+
+```bash
+# ၁။ Nginx နှင့် Certbot သွင်းရန်
+sudo apt update && sudo apt install nginx certbot python3-certbot-nginx -y
+
+# ၂။ SSL Certificate တောင်းယူရန် (Enter ခေါက်ပြီး တိုက်ရိုက် Run ပါ)
+sudo certbot certonly --nginx -d "$DOMAIN" --register-unsafely-without-email --agree-tos
+
+# ၃။ Nginx Config ဖန်တီးရန် (အောက်ပါ Block တစ်ခုလုံးကို Copy ကူးပြီး Run ပါ)
+sudo bash -c 'cat << "EOF" > /etc/nginx/sites-available/amnezia
+server {
+    listen 8443 ssl;
+    listen [::]:8443 ssl;
+    server_name '$DOMAIN';
+    
+    ssl_certificate /etc/letsencrypt/live/'$DOMAIN'/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/'$DOMAIN'/privkey.pem;
+
+    location / {
+        proxy_pass http://127.0.0.1:51831;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "upgrade";
+    }
+}
+
+server {
+    listen 80;
+    listen [::]:80;
+    server_name '$DOMAIN';
+    return 301 https://$host:8443$request_uri;
+}
+EOF'
+
+# ၄။ Nginx ကို Restart ချရန်
+sudo ln -sf /etc/nginx/sites-available/amnezia /etc/nginx/sites-enabled/
+sudo nginx -t
+sudo systemctl reload nginx
+```
+
+### အဆင့် (၅) - အင်တာနက် ပိုမြန်စေရန် BBR ဖွင့်ခြင်း (ရွေးချယ်နိုင်သည်)
+VPN အမြန်နှုန်း ပိုမိုကောင်းမွန်စေရန် အောက်ပါ command ကို Run ပေးပါ-
+
+```bash
+sudo bash -c 'cat << EOF >> /etc/sysctl.conf
+net.core.default_qdisc=fq
+net.ipv4.tcp_congestion_control=bbr
+EOF'
+sudo sysctl -p
+```
+
+🎉 **ပြီးပါပြီ!** ယခုဆိုလျှင် သင့် Browser မှတစ်ဆင့် `https://vpn.yourdomain.com:8443` (သင့် Domain အမည်) သို့ ဝင်ရောက်ပြီး သင်ပေးခဲ့သော Password ဖြင့် Web UI ကို အသုံးပြုနိုင်ပါပြီ။
+
+---
+ဒီအလွယ်ကူဆုံးနည်းလမ်းနဲ့ တပ်ဆင်လို့ အဆင်ပြေသွားပြီလား? ဆက်လက်ပြီး-
+- Web UI ထဲကနေ Client အသစ် (ဖုန်း/ကွန်ပျူတာ) တွေ ဘယ်လိုဖန်တီးရမလဲဆိုတာကို ပြသပေးရမလား?
+- AmneziaWG App ကို ဖုန်းမှာသွင်းပြီး QR Code ဖတ်ကာ ချိတ်ဆက်နည်းကို လမ်းညွှန်ပေးရမလား?
+- တပ်ဆင်တဲ့နေရာမှာ Error တစ်ခုခု တက်နေခဲ့ရင် အဲဒီ Error စာသားကို ပြောပြပေးလို့ရပါတယ်။

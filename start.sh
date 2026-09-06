@@ -1,12 +1,12 @@
 #!/bin/bash
 
 # ==============================================================================
-# AmneziaWG 2.0 Web UI Automation Script
+# AmneziaWG 3.1 Web UI Automation Script
 # ==============================================================================
 ENV_FILE="config.env"
 
 echo "--------------------------------------------------"
-echo "Starting AmneziaWG 2.0 Web UI Automation Script"
+echo "Starting AmneziaWG 3.1 Web UI Automation Script"
 echo "--------------------------------------------------"
 
 # Step 1: Check if config.env exists. If not, try to extract from running container
@@ -41,10 +41,10 @@ if [ ! -f "$ENV_FILE" ]; then
     echo ""
     
     echo "Generating Password Hash..."
-    HASH=$(sudo docker run -i amnezia-wg-easy:2.0 wgpw "$PASSWORD" | cut -d"'" -f2)
+    HASH=$(sudo docker run -i amnezia-wg-easy:3.1 wgpw "$PASSWORD" | cut -d"'" -f2)
     
     if [ -z "$HASH" ]; then
-        echo "ERROR: Failed to generate password hash. Make sure amnezia-wg-easy:2.0 image is built."
+        echo "ERROR: Failed to generate password hash. Make sure amnezia-wg-easy:3.1 image is built."
         exit 1
     fi
     
@@ -64,7 +64,7 @@ fi
 # Load the variables
 source "$ENV_FILE"
 
-# Step 3: Automatic wg0.json migration (DPI Bypass range and signature updates)
+# Step 3: Automatic wg0.json migration (AmneziaWG 3.1 parameters update)
 echo "Checking for wg0.json configuration file to auto-update..."
 WG_JSON_PATH=$(find /home /root -name "wg0.json" 2>/dev/null | head -n 1)
 
@@ -74,28 +74,55 @@ if [ -n "$WG_JSON_PATH" ] && [ -f "$WG_JSON_PATH" ]; then
     # Run inline Node.js migration script
     node -e '
 const fs = require("fs");
+const crypto = require("crypto");
 const filePath = process.argv[1];
 try {
   const data = JSON.parse(fs.readFileSync(filePath, "utf8"));
   if (data && data.server) {
+    let modified = false;
     const h1 = String(data.server.h1 || "");
     const i1 = String(data.server.i1 || "");
-    // Migrate if h1 is not a range, or if i1 contains the old TLS ClientHello signature (0x160301)
+    
+    // Check range headers
     if (!h1.includes("-") || i1.includes("0x160301")) {
-      console.log("Migrating wg0.json to new range-based headers and QUIC signatures...");
-      data.server.h1 = "100500-100600";
-      data.server.h2 = "100000500-100000600";
-      data.server.h3 = "200000500-200000502";
-      data.server.h4 = "300000500-400000500";
+      data.server.h1 = "1000500000-1000600000";
+      data.server.h2 = "1824000500-1824000600";
+      data.server.h3 = "2648000500-2648000502";
+      data.server.h4 = "3472000500-3473000500";
       data.server.i1 = "<b 0xc700000001><rc 8><t><r 100>";
       data.server.i2 = "<b 0xf6ab3267fa><t><rc 20><r 80>";
       data.server.i3 = "";
       data.server.i4 = "";
       data.server.i5 = "";
+      modified = true;
+    }
+    
+    // Migrate to AWG 3.1 parameters
+    if (!data.server.headerProtectionKey) {
+      console.log("Migrating wg0.json to AmneziaWG 3.1...");
+      data.server.headerProtectionKey = crypto.randomBytes(32).toString("base64");
+      data.server.contentPaddingAddition = "10-54";
+      data.server.rekeyAfterTime = "103-136";
+      data.server.rekeyTimeout = "4-6";
+      data.server.rejectAfterTime = "170-200";
+      data.server.keepaliveTimeout = "9-13";
+      data.server.maxHandshakeAttempts = "17-20";
+      data.server.randomTrailers = "on";
+      data.server.disableCookies = "on";
+      modified = true;
+    }
+    
+    // Ensure junk sizes are at least 12 for HeaderProtectionKey
+    if (typeof data.server.s1 === "number" && data.server.s1 < 12) { data.server.s1 = 15; modified = true; }
+    if (typeof data.server.s2 === "number" && data.server.s2 < 12) { data.server.s2 = 15; modified = true; }
+    if (typeof data.server.s3 === "number" && data.server.s3 < 12) { data.server.s3 = 16; modified = true; }
+    if (typeof data.server.s4 === "number" && data.server.s4 < 12) { data.server.s4 = 18; modified = true; }
+    
+    if (modified) {
       fs.writeFileSync(filePath, JSON.stringify(data, null, 2), "utf8");
-      console.log("[SUCCESS] wg0.json configuration updated.");
+      console.log("[SUCCESS] wg0.json updated to AmneziaWG 3.1.");
     } else {
-      console.log("wg0.json is already using range-based headers. No migration needed.");
+      console.log("wg0.json already has AmneziaWG 3.1 parameters. No migration needed.");
     }
   }
 } catch (err) {
@@ -135,7 +162,7 @@ sudo docker run -d \
   --sysctl="net.ipv4.ip_forward=1" \
   --device=/dev/net/tun:/dev/net/tun \
   --restart=unless-stopped \
-  amnezia-wg-easy:2.0
+  amnezia-wg-easy:3.1
 
 echo "Done! amnezia-wg-easy container is now running."
 echo "--------------------------------------------------"

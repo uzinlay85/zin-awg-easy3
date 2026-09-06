@@ -42,6 +42,15 @@ const {
   I3,
   I4,
   I5,
+  HEADER_PROTECTION_KEY,
+  CONTENT_PADDING_ADDITION,
+  REKEY_AFTER_TIME,
+  REKEY_TIMEOUT,
+  REJECT_AFTER_TIME,
+  KEEPALIVE_TIMEOUT,
+  MAX_HANDSHAKE_ATTEMPTS,
+  RANDOM_TRAILERS,
+  DISABLE_COOKIES,
 } = require('../config');
 
 module.exports = class WireGuard {
@@ -57,6 +66,43 @@ module.exports = class WireGuard {
       try {
         config = await fs.readFile(path.join(WG_PATH, 'wg0.json'), 'utf8');
         config = JSON.parse(config);
+
+        if (config && config.server) {
+          // Automatic AWG 3.1 migration for existing configurations
+          if (!config.server.headerProtectionKey) {
+            config.server.headerProtectionKey = HEADER_PROTECTION_KEY;
+          }
+          if (!config.server.contentPaddingAddition) {
+            config.server.contentPaddingAddition = CONTENT_PADDING_ADDITION;
+          }
+          if (!config.server.rekeyAfterTime) {
+            config.server.rekeyAfterTime = REKEY_AFTER_TIME;
+          }
+          if (!config.server.rekeyTimeout) {
+            config.server.rekeyTimeout = REKEY_TIMEOUT;
+          }
+          if (!config.server.rejectAfterTime) {
+            config.server.rejectAfterTime = REJECT_AFTER_TIME;
+          }
+          if (!config.server.keepaliveTimeout) {
+            config.server.keepaliveTimeout = KEEPALIVE_TIMEOUT;
+          }
+          if (!config.server.maxHandshakeAttempts) {
+            config.server.maxHandshakeAttempts = MAX_HANDSHAKE_ATTEMPTS;
+          }
+          if (!config.server.randomTrailers) {
+            config.server.randomTrailers = RANDOM_TRAILERS;
+          }
+          if (!config.server.disableCookies) {
+            config.server.disableCookies = DISABLE_COOKIES;
+          }
+          // With HeaderProtectionKey, junk sizes S1..S4 must be at least 12
+          if (typeof config.server.s1 === 'number' && config.server.s1 < 12) config.server.s1 = 15;
+          if (typeof config.server.s2 === 'number' && config.server.s2 < 12) config.server.s2 = 15;
+          if (typeof config.server.s3 === 'number' && config.server.s3 < 12) config.server.s3 = 16;
+          if (typeof config.server.s4 === 'number' && config.server.s4 < 12) config.server.s4 = 18;
+        }
+
         debug('Configuration loaded.');
       } catch (err) {
         const privateKey = await Util.exec('wg genkey');
@@ -81,6 +127,15 @@ module.exports = class WireGuard {
             h2: H2,
             h3: H3,
             h4: H4,
+            headerProtectionKey: HEADER_PROTECTION_KEY,
+            contentPaddingAddition: CONTENT_PADDING_ADDITION,
+            rekeyAfterTime: REKEY_AFTER_TIME,
+            rekeyTimeout: REKEY_TIMEOUT,
+            rejectAfterTime: REJECT_AFTER_TIME,
+            keepaliveTimeout: KEEPALIVE_TIMEOUT,
+            maxHandshakeAttempts: MAX_HANDSHAKE_ATTEMPTS,
+            randomTrailers: RANDOM_TRAILERS,
+            disableCookies: DISABLE_COOKIES,
             i1: I1,
             i2: I2,
             i3: I3,
@@ -152,6 +207,15 @@ H1 = ${config.server.h1}
 H2 = ${config.server.h2}
 H3 = ${config.server.h3}
 H4 = ${config.server.h4}
+HeaderProtectionKey = ${config.server.headerProtectionKey || HEADER_PROTECTION_KEY}
+ContentPaddingAddition = ${config.server.contentPaddingAddition || CONTENT_PADDING_ADDITION}
+RekeyAfterTime = ${config.server.rekeyAfterTime || REKEY_AFTER_TIME}
+RekeyTimeout = ${config.server.rekeyTimeout || REKEY_TIMEOUT}
+RejectAfterTime = ${config.server.rejectAfterTime || REJECT_AFTER_TIME}
+KeepaliveTimeout = ${config.server.keepaliveTimeout || KEEPALIVE_TIMEOUT}
+MaxHandshakeAttempts = ${config.server.maxHandshakeAttempts || MAX_HANDSHAKE_ATTEMPTS}
+RandomTrailers = ${config.server.randomTrailers || RANDOM_TRAILERS}
+DisableCookies = ${config.server.disableCookies || DISABLE_COOKIES}
 `;
 
     const i1 = config.server.i1 !== undefined ? config.server.i1 : I1;
@@ -270,7 +334,7 @@ ${client.preSharedKey ? `PresharedKey = ${client.preSharedKey}\n` : ''
     return `
 [Interface]
 PrivateKey = ${client.privateKey ? `${client.privateKey}` : 'REPLACE_ME'}
-Address = ${client.address}/24
+Address = ${client.address}/32
 ${WG_DEFAULT_DNS ? `DNS = ${WG_DEFAULT_DNS}\n` : ''}\
 ${WG_MTU ? `MTU = ${WG_MTU}\n` : ''}\
 Jc = ${config.server.jc}
@@ -284,6 +348,15 @@ H1 = ${config.server.h1}
 H2 = ${config.server.h2}
 H3 = ${config.server.h3}
 H4 = ${config.server.h4}
+HeaderProtectionKey = ${config.server.headerProtectionKey || HEADER_PROTECTION_KEY}
+ContentPaddingAddition = ${config.server.contentPaddingAddition || CONTENT_PADDING_ADDITION}
+RekeyAfterTime = ${config.server.rekeyAfterTime || REKEY_AFTER_TIME}
+RekeyTimeout = ${config.server.rekeyTimeout || REKEY_TIMEOUT}
+RejectAfterTime = ${config.server.rejectAfterTime || REJECT_AFTER_TIME}
+KeepaliveTimeout = ${config.server.keepaliveTimeout || KEEPALIVE_TIMEOUT}
+MaxHandshakeAttempts = ${config.server.maxHandshakeAttempts || MAX_HANDSHAKE_ATTEMPTS}
+RandomTrailers = ${config.server.randomTrailers || RANDOM_TRAILERS}
+DisableCookies = ${config.server.disableCookies || DISABLE_COOKIES}
 ${(config.server.i1 !== undefined ? config.server.i1 : I1) ? `I1 = ${config.server.i1 !== undefined ? config.server.i1 : I1}\n` : ''}\
 ${(config.server.i2 !== undefined ? config.server.i2 : I2) ? `I2 = ${config.server.i2 !== undefined ? config.server.i2 : I2}\n` : ''}\
 ${(config.server.i3 !== undefined ? config.server.i3 : I3) ? `I3 = ${config.server.i3 !== undefined ? config.server.i3 : I3}\n` : ''}\
@@ -293,8 +366,8 @@ ${(config.server.i5 !== undefined ? config.server.i5 : I5) ? `I5 = ${config.serv
 PublicKey = ${config.server.publicKey}
 ${client.preSharedKey ? `PresharedKey = ${client.preSharedKey}\n` : ''
 }AllowedIPs = ${WG_ALLOWED_IPS}
-PersistentKeepalive = ${WG_PERSISTENT_KEEPALIVE}
-Endpoint = ${WG_HOST}:${WG_CONFIG_PORT}`;
+Endpoint = ${WG_HOST}:${WG_CONFIG_PORT}
+PersistentKeepalive = ${WG_PERSISTENT_KEEPALIVE}`;
   }
 
   async getClientQRCodeSVG({ clientId }) {

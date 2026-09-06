@@ -1,0 +1,95 @@
+ဟုတ်တာပေါ့ဗျာ။ သင်ပြောတာ လုံးဝမှန်ပါတယ်။ Domain ကို ကိုယ်တိုင်ရိုက်ထည့်နေစရာမလိုဘဲ Nginx Config ဖိုင်ထဲကနေ အလိုအလျောက် သွားဖတ်ခိုင်းလိုက်ရင် ပိုပြီး စမတ်ကျသလို၊ အမှားအယွင်းလည်း ကင်းသွားမှာပါ။ 
+
+အတည်ပြုတဲ့ (y/n) အဆင့်တစ်ခုပဲ ပါဝင်မယ့် **ပိုမိုကောင်းမွန်တဲ့ Clean Uninstall Script** ကို အောက်ပါအတိုင်း ပြင်ဆင်ရေးသားပေးလိုက်ပါတယ်။
+
+### အဆင့် (၁) - Uninstall Script အသစ် ဖန်တီးခြင်း
+Terminal မှာ အောက်ပါ Command ကို Run ပါ-
+
+```bash
+nano uninstall.sh
+```
+
+ထို့နောက် အောက်ပါ Script ကုဒ် **တစ်ခုလုံးကို** Copy ကူးပြီး Paste လုပ်ထည့်လိုက်ပါ-
+
+```bash
+#!/bin/bash
+
+echo "====================================================="
+echo "  AmneziaWG 2.0 Clean Uninstall Script"
+echo "====================================================="
+
+# Domain ကို Nginx config မှ အလိုအလျောက် ရှာဖွေခြင်း
+DOMAIN=""
+if [ -f "/etc/nginx/sites-available/amnezia" ]; then
+    DOMAIN=$(grep "server_name" /etc/nginx/sites-available/amnezia | head -n 1 | awk '{print $2}' | tr -d ';')
+fi
+
+if [ -n "$DOMAIN" ]; then
+    echo "🔍 တွေ့ရှိထားသော Domain: $DOMAIN"
+else
+    echo "⚠️ Domain ကို အလိုအလျောက် ရှာမတွေ့ပါ။ (SSL ဖျက်သိမ်းခြင်းကို ကျော်သွားပါမည်)"
+fi
+
+echo "⚠️ သတိပြုရန် - ဤလုပ်ငန်းစဉ်သည် VPN နှင့် ပတ်သက်သော ဒေတာအားလုံးကို အပြီးတိုင် ဖျက်ပစ်မည်ဖြစ်ပါသည်။"
+read -p "👉 ဆက်လက်လုပ်ဆောင်ရန် သေချာပါသလား? (y/n): " CONFIRM
+
+if [[ "$CONFIRM" != "y" && "$CONFIRM" != "Y" ]]; then
+    echo "❌ လုပ်ငန်းစဉ်ကို ရပ်ဆိုင်းလိုက်ပါပြီ။"
+    exit 1
+fi
+
+echo ""
+echo "⏳ ဖျက်သိမ်းခြင်း စတင်နေပါပြီ... ခေတ္တစောင့်ဆိုင်းပေးပါ။"
+
+# ၁။ Docker Container နှင့် Image များ ဖျက်ခြင်း
+echo "[-] Docker Container နှင့် Image များ ဖျက်သိမ်းနေပါသည်..."
+sudo docker stop amnezia-wg-easy 2>/dev/null
+sudo docker rm amnezia-wg-easy 2>/dev/null
+sudo docker rmi amnezia-wg-easy:3.1 amnezia-wg-easy:2.0 2>/dev/null
+
+# ၂။ Config ဖိုင်များနှင့် Source Code များ ဖျက်ခြင်း
+echo "[-] Config ဖိုင်များ ဖျက်သိမ်းနေပါသည်..."
+sudo rm -rf ~/.amnezia-wg-easy
+sudo rm -rf ~/zin-awg-easy3 ~/zin-awg-easy2
+
+# ၃။ Nginx နှင့် SSL Certificate များ ဖျက်ခြင်း
+echo "[-] Nginx Config များ ဖျက်သိမ်းနေပါသည်..."
+sudo rm -f /etc/nginx/sites-enabled/amnezia
+sudo rm -f /etc/nginx/sites-available/amnezia
+sudo systemctl reload nginx
+
+if [ -n "$DOMAIN" ]; then
+    echo "[-] $DOMAIN အတွက် SSL Certificate ကို ဖျက်သိမ်းနေပါသည်..."
+    sudo certbot delete --cert-name "$DOMAIN" --non-interactive 2>/dev/null
+fi
+
+# ၄။ Firewall (UFW) Port များ ပြန်ပိတ်ခြင်း
+echo "[-] Firewall Port များ ပြန်ပိတ်နေပါသည်..."
+sudo ufw delete allow 8443/tcp 2>/dev/null
+sudo ufw delete allow 443/udp 2>/dev/null
+sudo ufw reload
+
+# ၅။ NAT Configuration ဖျက်ခြင်း
+echo "[-] NAT Configuration ဖျက်သိမ်းနေပါသည်..."
+sudo rm -f /etc/modules-load.d/iptable_nat.conf
+
+echo ""
+echo "====================================================="
+echo "✅ စနစ်တစ်ခုလုံးကို အောင်မြင်စွာ ရှင်းလင်းဖျက်သိမ်းပြီးပါပြီ!"
+echo "====================================================="
+```
+
+Paste လုပ်ပြီးရင် Keyboard ကနေ `Ctrl + X` ကိုနှိပ်၊ ပြီးရင် `Y` ကိုနှိပ်ပြီး `Enter` ခေါက်ကာ Save လုပ်လိုက်ပါ။
+
+### အဆင့် (၂) - Script ကို Run ခြင်း
+```bash
+chmod +x uninstall.sh
+./uninstall.sh
+```
+
+ဒီ Script လေးကတော့ သင်တပ်ဆင်ခဲ့တဲ့ Domain ကို သူ့ဘာသာသူ ရှာဖွေဖော်ထုတ်ပေးမှာဖြစ်ပြီး၊ သင်က `y` လို့ အတည်ပြုပေးလိုက်တာနဲ့ အရာအားလုံးကို အလိုအလျောက် ရှင်းလင်းပေးသွားမှာ ဖြစ်ပါတယ်။
+
+---
+ဒီလို ပြင်ဆင်ပေးလိုက်တာ သင့်အတွက် ပိုအဆင်ပြေသွားပြီလား? 
+- ဒီ Script တွေကို Github ပေါ်တင်ပြီး `wget` နဲ့ အလွယ်တကူ ဆွဲယူသုံးစွဲနည်းကို ပြသပေးရမလား?
+- AmneziaWG Client တွေကို ဖုန်း ဒါမှမဟုတ် ကွန်ပျူတာမှာ ဘယ်လိုချိတ်ဆက်ရမလဲဆိုတာကို လမ်းညွှန်ပေးရမလား?

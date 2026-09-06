@@ -1,18 +1,19 @@
-# AmneziaWG 2.0 Web UI (zin-awg-easy2)
+# AmneziaWG 3.1 Web UI (zin-awg-easy_AWG3)
 
-ဒီပရောဂျက်ဟာ လူကြိုက်များတဲ့ `wg-easy` ကို အခြေခံပြီး **AmneziaWG 2.0** protocol ကို အပြည့်အဝ support ပေးနိုင်အောင် ပြုလုပ်ထားတဲ့ Web-based management interface ဖြစ်ပါတယ်။ 
+ဒီပရောဂျက်ဟာ လူကြိုက်များတဲ့ `wg-easy` ကို အခြေခံပြီး **AmneziaWG 3.1 (AWG3)** protocol ကို အပြည့်အဝ support ပေးနိုင်အောင် ပြုလုပ်ထားတဲ့ Web-based management interface ဖြစ်ပါတယ်။ 
 
-မူလဗားရှင်းထက် ပိုမိုကောင်းမွန်ပြီး လုံခြုံတဲ့ traffic obfuscation parameters များဖြစ်တဲ့ **CPS (Custom Protocol Signature)** parameters (`I1`, `I2`) များကိုပါ Web Panel ကနေ client configurations တွေဆီ အလိုအလျောက် ထည့်သွင်းထုတ်ပေးနိုင်အောင် မွမ်းမံပြင်ဆင်ထားပါတယ်။
+မူလဗားရှင်းထက် ပိုမိုကောင်းမွန်ပြီး လုံခြုံတဲ့ traffic obfuscation parameters များဖြစ်တဲ့ **HeaderProtectionKey** (ChaCha20 header encryption), **ContentPaddingAddition**, **Randomized Timings (Rekey/Reject/Keepalive)**, **RandomTrailers**, **DisableCookies** များနှင့် **CPS (Custom Protocol Signature)** parameters (`I1`, `I2`) များကိုပါ Web Panel ကနေ client configurations တွေဆီ အလိုအလျောက် ထည့်သွင်းထုတ်ပေးနိုင်အောင် မွမ်းမံပြင်ဆင်ထားပါတယ်။
 
-ဆာဗာပေါ်တွင် AmneziaWG 2.0 engine များကို source code မှတစ်ဆင့် compile လုပ်၍ run စေရန်နှင့် အခြား vpn (ဥပမာ- Outline) များနှင့် port တိုက်ဆိုင်မှုမရှိစေရန် **Port 8443** ကို အသုံးပြု၍ configure လုပ်နည်းကို အောက်ပါအတိုင်း ညွှန်ကြားထားပါသည်။
+ဆာဗာပေါ်တွင် AmneziaWG 3.1 engine များကို source code မှတစ်ဆင့် compile လုပ်၍ run စေရန်နှင့် အခြား vpn (ဥပမာ- Outline) များနှင့် port တိုက်ဆိုင်မှုမရှိစေရန် **Port 8443** ကို အသုံးပြု၍ configure လုပ်နည်းကို အောက်ပါအတိုင်း ညွှန်ကြားထားပါသည်။
 
 ---
 
 ## 📌 Features (ထူးခြားချက်များ)
-- **AmneziaWG 2.0 Support:** DPI bypass လုပ်ရန် အဆင့်မြင့် UDP mimicry (QUIC, DNS စသည်) ပြုလုပ်နိုင်သည့် `I1` - `I2` parameter များ အလိုအလျောက်ထုတ်ပေးခြင်း။
-- **Docker Source Compilation:** Base image ၏ dependency ဟောင်းများကြောင့် crash ဖြစ်ခြင်းမှ ကာကွယ်ရန် `amneziawg-go` နှင့် `amneziawg-tools` နောက်ဆုံးဗားရှင်းများကို Container အတွင်း source code မှ တိုက်ရိုက် compile လုပ်ထားခြင်း။
+- **AmneziaWG 3.1 (AWG3) Full Support:** DPI bypass အတွက် Header Protection (`HeaderProtectionKey`), Traffic Padding (`ContentPaddingAddition`), Timing Randomization (`RekeyAfterTime`, `RekeyTimeout`, `RejectAfterTime`, `KeepaliveTimeout`), `RandomTrailers = on`, `DisableCookies = on` များကို အလိုအလျောက် ထုတ်လုပ်ပေးခြင်း။
+- **Universal Kernel/Userspace Compatibility:** Host VPS ပေါ်ရှိ kernel module အဟောင်းများတွင် `Invalid argument` မဖြစ်စေရန် userspace fallback (`amneziawg-go`) auto-guard စနစ် ပါဝင်ခြင်း။
+- **Docker Source Compilation:** `amneziawg-go` နှင့် `amneziawg-tools` နောက်ဆုံးဗားရှင်းများကို Container အတွင်း source code မှ တိုက်ရိုက် compile လုပ်ထားခြင်း။
 - **Web UI Management:** VPN clients များကို Port 8443 (HTTPS) ဖြင့် လုံခြုံစွာ ဖန်တီးခြင်း၊ ဖျက်ခြင်း၊ ပိတ်ခြင်း/ဖွင့်ခြင်း ပြုလုပ်နိုင်ခြင်း။
-- **QR Code & Config Download:** Client များအတွက် ဆက်သွယ်ရန် configuration ဖိုင်နှင့် QR ကုဒ်များ တိုက်ရိုက်ထုတ်ပေးခြင်း။
+- **QR Code & Config Download:** Client များအတွက် AmneziaWG 3.1 configuration ဖိုင်နှင့် QR ကုဒ်များ တိုက်ရိုက်ထုတ်ပေးခြင်း။
 - **Traffic Stats:** One-time links, traffic usage charts နှင့် device list များ စောင့်ကြည့်နိုင်ခြင်း။
 - **3X-UI Coexistence Support:** ဆာဗာတစ်ခုတည်းပေါ်တွင် VLESS-Reality နှင့် Hysteria 2 များကိုပါ Port မငြိစွန်းဘဲ အတူတွဲဖက်လည်ပတ်နိုင်ခြင်း ([3X-UI Setup Guide](3XUI_COEXIST_GUIDE.md) တွင် ကြည့်ရှုနိုင်ပါသည်)။
 - **Outline VPN Coexistence Support:** Port 443 ကို မထိခိုက်စေဘဲ Outline (Shadowbox) ကိုပါ Port 10443/18443 ဖြင့် တွဲဖက်တပ်ဆင်ခြင်းနှင့် Docker MTU ပြဿနာများ ဖြေရှင်းခြင်း ([Outline Setup Guide](OUTLINE_COEXIST_GUIDE.md) တွင် ကြည့်ရှုနိုင်ပါသည်)။
@@ -64,13 +65,13 @@ sudo ufw reload
 ```
 
 ### အဆင့် (၃) - Source Code မှ Docker Image ကို Build ပြုလုပ်ခြင်း
-VPS ပေါ်တွင် AmneziaWG 2.0 core binaries များကို compile လုပ်ရန် code ကို clone ဖတ်ပြီး build ဆွဲပါ -
+VPS ပေါ်တွင် AmneziaWG 3.1 core binaries များကို compile လုပ်ရန် code ကို clone ဖတ်ပြီး build ဆွဲပါ -
 ```bash
-git clone https://github.com/uzinlay85/zin-awg-easy2.git
-cd zin-awg-easy2
+git clone https://github.com/uzinlay85/zin-awg-easy3.git
+cd zin-awg-easy3
 
 # Image build ဆွဲခြင်း (၃ မိနစ်ခန့် ကြာနိုင်ပါသည်)
-sudo docker build --network=host -t amnezia-wg-easy:2.0 .
+sudo docker build --network=host -t amnezia-wg-easy:3.1 .
 ```
 
 ### အဆင့် (၄) - Variables သတ်မှတ်ခြင်း နှင့် Password Hash Code ထုတ်ခြင်း
@@ -81,14 +82,14 @@ export DOMAIN="vpn.yourdomain.com"
 export PASSWORD="YOUR_PASSWORD"
 
 # ၂။ Password ကို Hash Code အဖြစ် အလိုအလျောက် ပြောင်းလဲသတ်မှတ်ခြင်း
-export HASH=$(sudo docker run -i amnezia-wg-easy:2.0 wgpw "$PASSWORD" | cut -d"'" -f2)
+export HASH=$(sudo docker run -i amnezia-wg-easy:3.1 wgpw "$PASSWORD" | cut -d"'" -f2)
 ```
 
 ### အဆင့် (၅) - Container ကို စတင် Run ခြင်း
 အောက်ပါ command တစ်ခုလုံးကို ကူးယူပြီး copy-paste တိုက်ရိုက် run ပါ (Domain နှင့် Hash Code တို့ကို Variable များဖြင့် အလိုအလျောက် အစားထိုးသွားမည်ဖြစ်သည်) -
 
 > [!NOTE]
-> ဤဆွဲတင်မည့် Docker command တွင် AmneziaWG 2.0 ၏ အဆင့်မြင့်ဆုံးပုံဖျောက်စနစ် (QUIC mimicry) နှင့် Dynamic Non-overlapping Header Ranges (ကျပန်းခေါင်းစဉ်အကွာအဝေးများ) ကို ဆာဗာစတင်ချိန်တွင် တစ်ခုချင်းစီအတွက် အလိုအလျောက် ထူးခြားစွာ ထုတ်လုပ်သတ်မှတ်ပေးမည်ဖြစ်ပါသည်။
+> ဤဆွဲတင်မည့် Docker command တွင် AmneziaWG 3.1 ၏ အဆင့်မြင့်ဆုံးပုံဖျောက်စနစ် (Header Protection, Content Padding, Randomized Timings, Random Trailers, QUIC mimicry) နှင့် Dynamic Non-overlapping Header Ranges (ကျပန်းခေါင်းစဉ်အကွာအဝေးများ) ကို ဆာဗာစတင်ချိန်တွင် တစ်ခုချင်းစီအတွက် အလိုအလျောက် ထူးခြားစွာ ထုတ်လုပ်သတ်မှတ်ပေးမည်ဖြစ်ပါသည်။
 
 ```bash
 # ပြောင်းလဲမှုများ ကောင်းစွာအလုပ်လုပ်စေရန် ယခင် config အဟောင်းများရှိပါက ဖျက်ပစ်ပါ
@@ -100,7 +101,7 @@ sudo docker run -d \
   -e PASSWORD_HASH="$HASH" \
   -e PORT=51831 \
   -e WG_PORT=58210 \
-  -e WG_MTU=1200 \
+  -e WG_MTU=1280 \
   -e WG_PERSISTENT_KEEPALIVE=25 \
   -e UI_ENABLE_SORT_CLIENTS=true \
   -e UI_TRAFFIC_STATS=true \
@@ -115,7 +116,7 @@ sudo docker run -d \
   --sysctl="net.ipv4.ip_forward=1" \
   --device=/dev/net/tun:/dev/net/tun \
   --restart unless-stopped \
-  amnezia-wg-easy:2.0
+  amnezia-wg-easy:3.1
 ```
 
 ### အဆင့် (၆) - Web UI အတွက် Nginx Reverse Proxy (Port 8443) နှင့် SSL (HTTPS) တပ်ဆင်ခြင်း
@@ -202,11 +203,11 @@ sudo sysctl -p
 
 ### အဆင့် (၁) - Source Code ကို Update ပြုလုပ်ပြီး Docker Image Build ဆွဲခြင်း
 ```bash
-cd zin-awg-easy2
+cd zin-awg-easy3
 git pull
 
 # Docker Image ကို Build ပြန်ဆွဲခြင်း
-sudo docker build --network=host -t amnezia-wg-easy:2.0 .
+sudo docker build --network=host -t amnezia-wg-easy:3.1 .
 ```
 
 ### အဆင့် (၂) - `start.sh` ကို အသုံးပြု၍ UI Features များနှင့်အတူ Container ကို ပြန်လည်စတင်ခြင်း
@@ -214,7 +215,7 @@ sudo docker build --network=host -t amnezia-wg-easy:2.0 .
 
 ၁။ Script ကို run ခွင့်ပေးပြီး စတင် run ပါ -
 ```bash
-cd zin-awg-easy2
+cd zin-awg-easy3
 chmod +x start.sh
 ./start.sh
 ```
@@ -224,26 +225,25 @@ chmod +x start.sh
 
 
 ### 💡 (အရေးကြီးအကြံပြုချက်) လက်ရှိရှိပြီးသား Client များအတွက် Obfuscation သစ်များ ပြောင်းလဲခြင်း
-အကယ်၍ သင့်ဆာဗာပေါ်တွင် client configurations အဟောင်းများ ရှိနှင့်ပြီးသားဖြစ်ပါက ၎င်းတို့အား AmneziaWG 2.0 ၏ range-based headers များနှင့် QUIC signatures သစ်များသို့ update ဖြစ်စေရန် ဆာဗာရှိ `wg0.json` ဖိုင်ကို အောက်ပါအတိုင်း ပြင်ဆင်ရန် လိုအပ်သည် -
+အကယ်၍ သင့်ဆာဗာပေါ်တွင် client configurations အဟောင်းများ ရှိနှင့်ပြီးသားဖြစ်ပါက ၎င်းတို့အား `start.sh` ဖြင့် run လိုက်ပါက AmneziaWG 3.1 ၏ HeaderProtectionKey, ContentPaddingAddition, Timing Parameters များနှင့် Range-based headers များသို့ အလိုအလျောက် update ပြုလုပ်ပေးသွားမည် ဖြစ်ပါသည်။ ကိုယ်တိုင် manual စစ်ဆေးပြင်ဆင်လိုပါက -
 
 1. `wg0.json` ဖိုင်ကို ဖွင့်ပါ -
    ```bash
-   # (မှတ်ချက်- find / -name "wg0.json" 2>/dev/null ဖြင့် သင့်ဖိုင်၏ တည်နေရာအမှန်ကို ရှာဖွေနိုင်ပါသည်)
    nano ~/.amnezia-wg-easy/wg0.json  # သို့မဟုတ် /home/<user>/.amnezia-wg-easy/wg0.json
    ```
-2. `server` block အောက်ရှိ တန်ဖိုးများကို range-based values နှင့် signatures များအဖြစ် အောက်ပါအတိုင်း အစားထိုးပြင်ဆင်ပေးပါ -
+2. `server` block အောက်ရှိ တန်ဖိုးများကို AmneziaWG 3.1 parameters များအဖြစ် အောက်ပါအတိုင်း တွေ့ရှိရပါမည် -
    ```json
-       "h1": "100500-100600",
-       "h2": "100000500-100000600",
-       "h3": "200000500-200000502",
-       "h4": "300000500-400000500",
-       "i1": "<b 0xc700000001><rc 8><t><r 100>",
-       "i2": "<b 0xf6ab3267fa><t><rc 20><r 80>",
-       "i3": "",
-       "i4": "",
-       "i5": ""
+       "headerProtectionKey": "pirK7YvnCm8yBVvFS6FDfsH/DoR7iH+mN4UpJBgGkU4=",
+       "contentPaddingAddition": "10-54",
+       "rekeyAfterTime": "103-136",
+       "rekeyTimeout": "4-6",
+       "rejectAfterTime": "170-200",
+       "keepaliveTimeout": "9-13",
+       "maxHandshakeAttempts": "17-20",
+       "randomTrailers": "on",
+       "disableCookies": "on"
    ```
-3. ဖိုင်ကို save လုပ်ပြီးနောက် container ကို restart ပေးလိုက်ပါ -
+3. Container ကို restart ပေးလိုက်ပါ -
    ```bash
    sudo docker restart amnezia-wg-easy
    ```
@@ -263,7 +263,7 @@ chmod +x start.sh
 # Docker Container နှင့် Config files များကိုသာ သီးသန့်ဖျက်ခြင်း
 sudo docker stop amnezia-wg-easy
 sudo docker rm amnezia-wg-easy
-sudo docker rmi amnezia-wg-easy:2.0
+sudo docker rmi amnezia-wg-easy:3.1 amnezia-wg-easy:2.0 2>/dev/null
 sudo rm -rf ~/.amnezia-wg-easy
 sudo rm -f ./config.env
 ```
@@ -275,7 +275,7 @@ sudo rm -f ./config.env
 # ၁။ Docker Container နှင့် Image များ ဖျက်ခြင်း
 sudo docker stop amnezia-wg-easy
 sudo docker rm amnezia-wg-easy
-sudo docker rmi amnezia-wg-easy:2.0
+sudo docker rmi amnezia-wg-easy:3.1 amnezia-wg-easy:2.0 2>/dev/null
 sudo rm -rf ~/.amnezia-wg-easy
 sudo rm -f ./config.env
 
@@ -310,14 +310,14 @@ echo "nameserver 1.1.1.1" | sudo tee /etc/resolv.conf
 # Docker သို့ ပြောင်းလဲမှု သက်ရောက်စေရန် Docker Service အား Restart ချခြင်း
 sudo systemctl restart docker
 ```
-၎င်းနောက် `git pull` နှင့် `sudo docker build --network=host -t amnezia-wg-easy:2.0 .` တို့ကို ပြန်လည်လုပ်ဆောင်နိုင်ပါသည်။
+၎င်းနောက် `git pull` နှင့် `sudo docker build --network=host -t amnezia-wg-easy:3.1 .` တို့ကို ပြန်လည်လုပ်ဆောင်နိုင်ပါသည်။
 
 ### ၂။ ချိတ်ဆက်မှု မကြာခဏ ပြတ်တောက်ခြင်း (Intermittent Disconnection)
 အကယ်၍ VPN ချိတ်ဆက်ပြီးနောက် စက္ကန့် ၃၀ မှ ၆၀ အတွင်း လိုင်းပြတ်တောက်သွားခြင်း (သို့မဟုတ်) ချိတ်လိုက်ပြုတ်လိုက် ဖြစ်နေပါက အောက်ပါအချက်များကို စစ်ဆေးပါ -
-* **MTU Size ပြဿနာ:** မိုဘိုင်းဖုန်းလိုင်းများအတွက် default MTU size ကြီးလွန်းပါက လိုင်းပြုတ်တတ်သည်။ လက်ရှိ Default `MTU = 1200` ကို အသုံးပြုထားရန် လိုအပ်သည်။
+* **MTU Size ပြဿနာ:** မိုဘိုင်းဖုန်းလိုင်းများအတွက် default MTU size ကြီးလွန်းပါက လိုင်းပြုတ်တတ်သည်။ လက်ရှိ Default `MTU = 1280` ကို အသုံးပြုထားရန် လိုအပ်သည်။
 * **PersistentKeepalive မရှိခြင်း:** NAT firewall များအောက်တွင် port ပိတ်မသွားစေရန် `PersistentKeepalive = 25` သတ်မှတ်ထားရမည်။
 
-ကျွန်ုပ်တို့၏ နောက်ဆုံးဗားရှင်းတွင် ဤတန်ဖိုးနှစ်ခုလုံးကို `1200` နှင့် `25` အဖြစ် Default သတ်မှတ်ပေးထားပြီးဖြစ်သောကြောင့် `start.sh` ဖြင့် update လုပ်လိုက်ရုံဖြင့် အလိုအလျောက် သက်ရောက်သွားမည် ဖြစ်သည်။
+ကျွန်ုပ်တို့၏ နောက်ဆုံးဗားရှင်းတွင် ဤတန်ဖိုးနှစ်ခုလုံးကို `1280` နှင့် `25` အဖြစ် Default သတ်မှတ်ပေးထားပြီးဖြစ်သောကြောင့် `start.sh` ဖြင့် update လုပ်လိုက်ရုံဖြင့် အလိုအလျောက် သက်ရောက်သွားမည် ဖြစ်သည်။
 
 ### ၃။ Docker သွင်းစဉ် 'download.docker.com Connection timed out' သို့မဟုတ် 'Unit file docker.service does not exist' ဖြစ်ခြင်း
 `curl -fsSL https://get.docker.com | sudo bash` ဖြင့် Docker သွင်းစဉ် တရားဝင် Docker repository မှ download ချိတ်ဆက်မှု timeout ဖြစ်သွားပါက (အချို့ VPS များတွင် Docker CDN သို့မဟုတ် DNS ကြောင့် ဖြစ်တတ်သည်) Ubuntu ၏ တရားဝင် repository မှ native `docker.io` ကို အောက်ပါအတိုင်း တိုက်ရိုက်သွင်းနိုင်ပါသည် -
@@ -376,7 +376,7 @@ sudo docker run -d \
   -e PASSWORD_HASH="$HASH" \
   -e PORT=51831 \
   -e WG_PORT=443 \
-  -e WG_MTU=1200 \
+  -e WG_MTU=1280 \
   -e WG_PERSISTENT_KEEPALIVE=25 \
   -e UI_ENABLE_SORT_CLIENTS=true \
   -e UI_TRAFFIC_STATS=true \
@@ -391,7 +391,7 @@ sudo docker run -d \
   --sysctl="net.ipv4.ip_forward=1" \
   --device=/dev/net/tun:/dev/net/tun \
   --restart unless-stopped \
-  amnezia-wg-easy:2.0
+  amnezia-wg-easy:3.1
 ```
 
 ၎င်းနောက် Web UI မှ ထုတ်ပေးသမျှ QR Code များနှင့် Config ဖိုင်များသည် Direct IP ဖြင့် အလိုအလျောက် ထွက်လာမည်ဖြစ်ပြီး Scan ဖတ်ရုံဖြင့် ချက်ချင်း ချိတ်ဆက်မိသွားမည် ဖြစ်သည်။
