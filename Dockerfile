@@ -38,12 +38,10 @@ RUN sed -i 's|if ! cmd ip link add "$INTERFACE" type amneziawg; then|if [ -n "$W
 RUN mkdir -p /etc/amnezia && ln -sf /etc/wireguard /etc/amnezia/amneziawg
 
 COPY entrypoint.sh /entrypoint.sh
-RUN chmod +x /entrypoint.sh
-
 COPY --from=build_node_modules /app /app
 COPY --from=build_node_modules /node_modules /node_modules
 COPY --from=build_node_modules /app/wgpw.sh /bin/wgpw
-RUN chmod +x /bin/wgpw
+RUN sed -i 's/\r$//' /entrypoint.sh /bin/wgpw && chmod +x /entrypoint.sh /bin/wgpw
 
 RUN sed -i 's/https/http/' /etc/apk/repositories && apk add --no-cache \
     dpkg \

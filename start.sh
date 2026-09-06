@@ -61,7 +61,10 @@ if [ ! -f "$ENV_FILE" ]; then
     PASSWORD="${INPUT_PASSWORD:-admin123}"
     
     echo "Generating Password Hash..."
-    HASH=$(sudo docker run -i amnezia-wg-easy:3.1 wgpw "$PASSWORD" | cut -d"'" -f2)
+    HASH=$(sudo docker run -i --entrypoint="" amnezia-wg-easy:3.1 node /app/wgpw.mjs "$PASSWORD" 2>/dev/null | grep '^PASSWORD_HASH=' | cut -d"'" -f2)
+    if [ -z "$HASH" ]; then
+        HASH=$(sudo docker run -i amnezia-wg-easy:3.1 wgpw "$PASSWORD" 2>/dev/null | grep '^PASSWORD_HASH=' | cut -d"'" -f2)
+    fi
     
     if [ -z "$HASH" ]; then
         echo "ERROR: Failed to generate password hash. Make sure amnezia-wg-easy:3.1 image is built."
