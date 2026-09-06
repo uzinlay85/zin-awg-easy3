@@ -171,12 +171,15 @@ echo "Stopping old $CONTAINER_NAME container if running..."
 sudo docker stop "$CONTAINER_NAME" 2>/dev/null || true
 sudo docker rm "$CONTAINER_NAME" 2>/dev/null || true
 
-# Configure UFW Firewall if active
-if command -v ufw >/dev/null 2>&1 && sudo ufw status 2>/dev/null | grep -q "Status: active"; then
-    echo "Ensuring Firewall ports are open: ${WG_PORT}/udp and ${PORT}/tcp..."
-    sudo ufw allow "${WG_PORT}/udp" >/dev/null 2>&1
-    sudo ufw allow "${PORT}/tcp" >/dev/null 2>&1
-    sudo ufw reload >/dev/null 2>&1
+# Configure UFW Firewall if installed
+if command -v ufw >/dev/null 2>&1; then
+    echo "Configuring Firewall (UFW)..."
+    sudo ufw allow "${WG_PORT}/udp"
+    sudo ufw allow "${PORT}/tcp"
+    sudo ufw reload
+    echo "[+] Firewall configured: Opened ${WG_PORT}/udp (VPN) and ${PORT}/tcp (Web UI)."
+else
+    echo "[!] UFW is not installed. Skipping firewall configuration."
 fi
 
 echo "Starting container with volume mapping: $VOL_DIR -> /etc/wireguard"
