@@ -1,28 +1,38 @@
 #!/bin/bash
 
 # ==============================================================================
-# AmneziaWG 3.1 Web UI Automation Script
+# AmneziaWG 3.1 (AWG3) Web UI Automation Script
 # ==============================================================================
 ENV_FILE="config.env"
+CONTAINER_NAME="amnezia-wg-easy3"
 
 echo "--------------------------------------------------"
-echo "Starting AmneziaWG 3.1 Web UI Automation Script"
+echo "Starting AmneziaWG 3.1 (AWG3) Web UI Automation"
 echo "--------------------------------------------------"
 
-# Step 1: Check if config.env exists. If not, try to extract from running container
+# Detect Server Public IP
+echo "Detecting server public IP..."
+SERVER_IP=$(curl -s4 --max-time 3 ifconfig.me 2>/dev/null || curl -s4 --max-time 3 icanhazip.com 2>/dev/null || curl -s4 --max-time 3 api.ipify.org 2>/dev/null || echo "127.0.0.1")
+echo "Detected Public IP: ${SERVER_IP}"
+
+# Step 1: Check if config.env exists. If not, try to extract from running amnezia-wg-easy3 container
 if [ ! -f "$ENV_FILE" ]; then
-    echo "No $ENV_FILE found. Checking if there is an active container to restore config..."
-    if sudo docker ps --format '{{.Names}}' | grep -q '^amnezia-wg-easy$'; then
-        echo "Found running amnezia-wg-easy container! Extracting parameters..."
-        DOMAIN=$(sudo docker inspect amnezia-wg-easy --format='{{range .Config.Env}}{{println .}}{{end}}' | grep '^WG_HOST=' | cut -d= -f2)
-        HASH=$(sudo docker inspect amnezia-wg-easy --format='{{range .Config.Env}}{{println .}}{{end}}' | grep '^PASSWORD_HASH=' | cut -d= -f2)
+    echo "No $ENV_FILE found. Checking if there is an active $CONTAINER_NAME container to restore config..."
+    if sudo docker ps --format '{{.Names}}' | grep -q "^${CONTAINER_NAME}$"; then
+        echo "Found running $CONTAINER_NAME container! Extracting parameters..."
+        DOMAIN=$(sudo docker inspect "$CONTAINER_NAME" --format='{{range .Config.Env}}{{println .}}{{end}}' | grep '^WG_HOST=' | cut -d= -f2)
+        HASH=$(sudo docker inspect "$CONTAINER_NAME" --format='{{range .Config.Env}}{{println .}}{{end}}' | grep '^PASSWORD_HASH=' | cut -d= -f2)
+        PORT=$(sudo docker inspect "$CONTAINER_NAME" --format='{{range .Config.Env}}{{println .}}{{end}}' | grep '^PORT=' | cut -d= -f2)
+        WG_PORT=$(sudo docker inspect "$CONTAINER_NAME" --format='{{range .Config.Env}}{{println .}}{{end}}' | grep '^WG_PORT=' | cut -d= -f2)
         
         if [ -n "$DOMAIN" ] && [ -n "$HASH" ]; then
             cat << EOF > "$ENV_FILE"
-WG_HOST=$DOMAIN
-PASSWORD_HASH=$HASH
-PORT=51831
-WG_PORT=58210
+WG_HOST=${DOMAIN}
+PASSWORD_HASH=${HASH}
+PORT=${PORT:-51833}
+WG_PORT=${WG_PORT:-51820}
+WG_DEFAULT_ADDRESS=10.8.1.x
+WG_MTU=1280
 UI_ENABLE_SORT_CLIENTS=true
 UI_TRAFFIC_STATS=true
 WG_ENABLE_EXPIRES_TIME=true
@@ -33,26 +43,39 @@ EOF
     fi
 fi
 
-# Step 2: If config.env still doesn't exist, ask the user for domain and password
+# Step 2: If config.env still doesn't exist, ask the user with smart defaults
 if [ ! -f "$ENV_FILE" ]; then
-    echo "$ENV_FILE not found and no active container detected."
-    read -p "Enter your VPN Domain (e.g., vpn.yourdomain.com): " DOMAIN
-    read -s -p "Enter your VPN Admin Password: " PASSWORD
     echo ""
+    echo "=== Configure Settings (Press Enter to use Default) ==="
+    read -p "Enter your VPN Domain or Server IP [Default: ${SERVER_IP}]: " INPUT_DOMAIN
+    DOMAIN="${INPUT_DOMAIN:-${SERVER_IP}}"
+
+    read -p "Enter Web UI Port [Default: 51833]: " INPUT_PORT
+    PORT="${INPUT_PORT:-51833}"
+
+    read -p "Enter VPN UDP Port [Default: 51820]: " INPUT_WG_PORT
+    WG_PORT="${INPUT_WG_PORT:-51820}"
+
+    read -s -p "Enter your VPN Admin Password [Default: admin123]: " INPUT_PASSWORD
+    echo ""
+    PASSWORD="${INPUT_PASSWORD:-admin123}"
     
     echo "Generating Password Hash..."
     HASH=$(sudo docker run -i amnezia-wg-easy:3.1 wgpw "$PASSWORD" | cut -d"'" -f2)
     
     if [ -z "$HASH" ]; then
         echo "ERROR: Failed to generate password hash. Make sure amnezia-wg-easy:3.1 image is built."
+        echo "Run: sudo docker build --network host -t amnezia-wg-easy:3.1 ."
         exit 1
     fi
     
     cat << EOF > "$ENV_FILE"
-WG_HOST=$DOMAIN
-PASSWORD_HASH=$HASH
-PORT=51831
-WG_PORT=58210
+WG_HOST=${DOMAIN}
+PASSWORD_HASH=${HASH}
+PORT=${PORT}
+WG_PORT=${WG_PORT}
+WG_DEFAULT_ADDRESS=10.8.1.x
+WG_MTU=1280
 UI_ENABLE_SORT_CLIENTS=true
 UI_TRAFFIC_STATS=true
 WG_ENABLE_EXPIRES_TIME=true
@@ -133,29 +156,33 @@ else
     echo "No wg0.json found yet. (This is normal for fresh installations)."
 fi
 
-echo "Domain: $WG_HOST"
+# Determine volume source directory for AWG3 (never overwrites AWG2)
+VOL_DIR="/home/zinko/.amnezia-wg-easy3"
+if [ ! -d "/home/zinko" ]; then
+    VOL_DIR="/root/.amnezia-wg-easy3"
+fi
+mkdir -p "$VOL_DIR"
 
-echo "Stopping old container if running..."
-sudo docker stop amnezia-wg-easy 2>/dev/null || true
-sudo docker rm amnezia-wg-easy 2>/dev/null || true
+# Stop only the AWG3 container (leaves AWG2 untouched)
+echo "Stopping old $CONTAINER_NAME container if running..."
+sudo docker stop "$CONTAINER_NAME" 2>/dev/null || true
+sudo docker rm "$CONTAINER_NAME" 2>/dev/null || true
 
-# Determine volume source directory dynamically
-VOL_DIR=$(dirname "$WG_JSON_PATH")
-if [ -z "$VOL_DIR" ] || [ ! -d "$VOL_DIR" ]; then
-    # Fallback to default if no wg0.json was found
-    VOL_DIR="/home/zinko/.amnezia-wg-easy"
-    if [ ! -d "/home/zinko" ]; then
-        VOL_DIR="/root/.amnezia-wg-easy"
-    fi
+# Configure UFW Firewall if active
+if command -v ufw >/dev/null 2>&1 && sudo ufw status 2>/dev/null | grep -q "Status: active"; then
+    echo "Ensuring Firewall ports are open: ${WG_PORT}/udp and ${PORT}/tcp..."
+    sudo ufw allow "${WG_PORT}/udp" >/dev/null 2>&1
+    sudo ufw allow "${PORT}/tcp" >/dev/null 2>&1
+    sudo ufw reload >/dev/null 2>&1
 fi
 
 echo "Starting container with volume mapping: $VOL_DIR -> /etc/wireguard"
 sudo docker run -d \
-  --name=amnezia-wg-easy \
+  --name="$CONTAINER_NAME" \
   --env-file "$ENV_FILE" \
   -v "$VOL_DIR:/etc/wireguard" \
-  -p 58210:58210/udp \
-  -p 127.0.0.1:51831:51831/tcp \
+  -p "${WG_PORT}:${WG_PORT}/udp" \
+  -p "${PORT}:${PORT}/tcp" \
   --cap-add=NET_ADMIN \
   --cap-add=SYS_MODULE \
   --sysctl="net.ipv4.conf.all.src_valid_mark=1" \
@@ -164,6 +191,11 @@ sudo docker run -d \
   --restart=unless-stopped \
   amnezia-wg-easy:3.1
 
-echo "Done! amnezia-wg-easy container is now running."
-echo "--------------------------------------------------"
-sudo docker ps | grep amnezia-wg-easy
+echo ""
+echo "=================================================="
+echo "🎉 AmneziaWG 3.1 (AWG3) is now running!"
+echo "🌐 Web UI Panel : http://${DOMAIN}:${PORT}"
+echo "🔑 VPN Endpoint : ${DOMAIN}:${WG_PORT}"
+echo "📁 Volume Path  : ${VOL_DIR}"
+echo "=================================================="
+sudo docker ps | grep "$CONTAINER_NAME"
