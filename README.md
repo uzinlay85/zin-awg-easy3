@@ -34,7 +34,21 @@
 
 Ubuntu / Debian VPS ပေါ်တွင် Terminal ဖွင့်ပြီး အောက်ပါ command များကို အစဉ်လိုက် run ပေးရုံသာ ဖြစ်ပါသည်:
 
-### အဆင့် (၁) - Repository ကို Clone ခေါ်ပါ
+### အဆင့် (၁) - Docker နှင့် NAT Module သွင်းခြင်း
+
+Docker မရှိသေးပါက အောက်ပါ command ဖြင့် Docker နှင့် NAT Module ကို ၁ မိနစ်အတွင်း အမြန်သွင်းနိုင်ပါသည်:
+
+```bash
+# NAT module ဖွင့်ခြင်း
+sudo modprobe iptable_nat
+echo "iptable_nat" | sudo tee /etc/modules-load.d/iptable_nat.conf
+
+# Docker သွင်းခြင်းနှင့် service ဖွင့်ခြင်း
+sudo apt update && sudo apt install -y docker.io git
+sudo systemctl enable --now docker
+```
+
+### အဆင့် (၂) - Repository ကို Clone ခေါ်ပါ
 
 ```bash
 cd /home/zinko   # သို့မဟုတ် မိမိအသုံးပြုလိုသော directory (ဥပမာ cd ~)
@@ -42,14 +56,14 @@ git clone https://github.com/uzinlay85/zin-awg-easy3.git
 cd zin-awg-easy3
 ```
 
-### အဆင့် (၂) - Docker Image ကို Build ပြုလုပ်ပါ
+### အဆင့် (၃) - Docker Image ကို Build ပြုလုပ်ပါ
 
 ```bash
 sudo docker build --no-cache --network host -t amnezia-wg-easy:3.1 .
 ```
 *(ပထမဆုံးအကြိမ် compile လုပ်ချိန် ၃ မိနစ်ခန့် ကြာနိုင်ပါသည်)*
 
-### အဆင့် (၃) - Automation Script ကို စတင် Run ပါ
+### အဆင့် (၄) - Automation Script ကို စတင် Run ပါ
 
 ```bash
 chmod +x start.sh

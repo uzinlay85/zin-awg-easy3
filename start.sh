@@ -10,6 +10,21 @@ echo "--------------------------------------------------"
 echo "Starting AmneziaWG 3.1 (AWG3) Web UI Automation"
 echo "--------------------------------------------------"
 
+# Check and Auto-Install Docker if missing
+if ! command -v docker >/dev/null 2>&1; then
+    echo "[!] Docker is not installed on this system."
+    echo "Installing Docker and NAT module now..."
+    sudo modprobe iptable_nat 2>/dev/null || true
+    echo "iptable_nat" | sudo tee /etc/modules-load.d/iptable_nat.conf >/dev/null 2>&1 || true
+    sudo apt update && sudo apt install -y docker.io git
+    sudo systemctl enable --now docker
+    if ! command -v docker >/dev/null 2>&1; then
+        echo "[-] ERROR: Failed to install Docker. Please install Docker manually."
+        exit 1
+    fi
+    echo "[+] Docker installed and started successfully."
+fi
+
 # Detect Server Public IP
 echo "Detecting server public IP..."
 SERVER_IP=$(curl -s4 --max-time 3 ifconfig.me 2>/dev/null || curl -s4 --max-time 3 icanhazip.com 2>/dev/null || curl -s4 --max-time 3 api.ipify.org 2>/dev/null || echo "127.0.0.1")
