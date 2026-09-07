@@ -182,6 +182,9 @@ fi
 # Load the variables
 source "$ENV_FILE"
 
+# Ensure DOMAIN and DISPLAY_DOMAIN are set (use WG_HOST from config, fallback to SERVER_IP)
+DOMAIN="${WG_HOST:-${SERVER_IP}}"
+
 # Step 3: Check volume directory for AWG3 (never overwrites AWG2)
 VOL_DIR="/home/zinko/.amnezia-wg-easy3"
 if [ ! -d "/home/zinko" ]; then
