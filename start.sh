@@ -25,6 +25,20 @@ if ! command -v docker >/dev/null 2>&1; then
     echo "[+] Docker installed and started successfully."
 fi
 
+# Step 0: Optimize Host MTU and TCPMSS Clamping for Cloud Nodes (Fixes TLS Handshake & Packet Drops)
+DEFAULT_IF=$(ip route show default 2>/dev/null | awk '{print $5}' | head -n 1)
+if [ -n "$DEFAULT_IF" ]; then
+    CURRENT_MTU=$(cat /sys/class/net/"$DEFAULT_IF"/mtu 2>/dev/null || echo "1500")
+    if [ "$CURRENT_MTU" -gt 1400 ]; then
+        echo "Optimizing Host Network MTU: Changing ${DEFAULT_IF} MTU from ${CURRENT_MTU} -> 1400 for cloud stability..."
+        sudo ip link set dev "$DEFAULT_IF" mtu 1400 2>/dev/null || true
+    fi
+fi
+# Ensure TCP MSS clamping is present
+if ! sudo iptables -t mangle -C POSTROUTING -p tcp --tcp-flags SYN,RST SYN -j TCPMSS --clamp-mss-to-pmtu 2>/dev/null; then
+    sudo iptables -t mangle -A POSTROUTING -p tcp --tcp-flags SYN,RST SYN -j TCPMSS --clamp-mss-to-pmtu 2>/dev/null || true
+fi
+
 # Detect Server Public IP
 echo "Detecting server public IP..."
 SERVER_IP=$(curl -s4 --max-time 3 ifconfig.me 2>/dev/null || curl -s4 --max-time 3 icanhazip.com 2>/dev/null || curl -s4 --max-time 3 api.ipify.org 2>/dev/null || echo "127.0.0.1")
