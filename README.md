@@ -29,6 +29,8 @@
    - VPS Linux kernel ပေါ်တွင် AmneziaWG module မရှိသေးပါက userspace fallback (`amneziawg-go`) ဖြင့် error ကင်းစွာ auto-fallback အလုပ်လုပ်ပါသည်။
 6. **QQG.NET Cloud & Multi-VPN (Outline, 3X-UI) Coexistence:**
    - QQG.NET node များတွင် MTU 1400 auto-optimize လုပ်ပေးခြင်းနှင့် Outline / 3X-UI များနှင့် တွဲဖက် run နည်း အသေးစိတ် ([QQG Setup Guide](QQG_NODE_SETUP_GUIDE.md) တွင် ကြည့်ရှုနိုင်ပါသည်)။
+7. **Cloud Server MTU Diagnostics & Optimization:**
+   - မည်သည့် Cloud VPS တွင်မဆို အကောင်းဆုံး MTU ရှာဖွေနည်းနှင့် ပုံသေ သတ်မှတ်နည်း လမ်းညွှန် ([Server MTU Diagnostic Guide](SERVER_MTU_DIAGNOSTIC_GUIDE.md) တွင် ကြည့်ရှုနိုင်ပါသည်)။
 
 ---
 
