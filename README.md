@@ -27,6 +27,8 @@
    - Setup စတင်ချိန်တွင် Password သတ်မှတ်နိုင်သည့်အပြင်၊ နောက်ပိုင်းတွင် Password အသစ်ပြောင်းလိုပါက `./start.sh password` ဖြင့် အချိန်မရွေး လွယ်ကူစွာ ပြောင်းလဲနိုင်ပါသည်။
 5. **Universal Kernel / Userspace Compatibility:**
    - VPS Linux kernel ပေါ်တွင် AmneziaWG module မရှိသေးပါက userspace fallback (`amneziawg-go`) ဖြင့် error ကင်းစွာ auto-fallback အလုပ်လုပ်ပါသည်။
+6. **QQG.NET Cloud & Multi-VPN (Outline, 3X-UI) Coexistence:**
+   - QQG.NET node များတွင် MTU 1400 auto-optimize လုပ်ပေးခြင်းနှင့် Outline / 3X-UI များနှင့် တွဲဖက် run နည်း အသေးစိတ် ([QQG Setup Guide](QQG_NODE_SETUP_GUIDE.md) တွင် ကြည့်ရှုနိုင်ပါသည်)။
 
 ---
 
