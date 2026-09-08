@@ -33,6 +33,8 @@
    - မည်သည့် Cloud VPS တွင်မဆို အကောင်းဆုံး MTU ရှာဖွေနည်းနှင့် ပုံသေ သတ်မှတ်နည်း လမ်းညွှန် ([Server MTU Diagnostic Guide](SERVER_MTU_DIAGNOSTIC_GUIDE.md) တွင် ကြည့်ရှုနိုင်ပါသည်)။
 8. **BBR Blast Smooth TCP Optimization (High Speed 1G/2G Nodes):**
    - 2000Mbps အထိ Bandwidth အပြည့် ဆွဲသုံးနိုင်ရန် BBR နှင့် 64MB Buffer အသက်သွင်းနည်း ([BBR Optimization Guide](BBR_OPTIMIZATION_GUIDE.md) တွင် ကြည့်ရှုနိုင်ပါသည်)။
+9. **Server Network Speedtest & Benchmark Guide:**
+   - ဆာဗာ၏ Bandwidth အစစ်အမှန်ကို တရားဝင် Ookla CLI နှင့် YABS ဖြင့် တိကျစွာ တိုင်းတာစစ်ဆေးနည်း ([Server Speedtest Guide](SERVER_SPEEDTEST_GUIDE.md) တွင် ကြည့်ရှုနိုင်ပါသည်)။
 
 ---
 
